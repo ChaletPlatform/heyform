@@ -146,7 +146,15 @@ export const Renderer: FC<RendererProps> = ({ form, query, locale, contactId }) 
 
       const hiddenFields = (form!.hiddenFields || [])
         .map(field => {
-          const value = query[field.name]
+          let value = query[field.name]
+
+          // Fallback: read from DOM hidden input (e.g. injected by TrustedForm SDK)
+          if (!helper.isValid(value)) {
+            const input = document.querySelector<HTMLInputElement>(`input[name="${field.name}"]`)
+            if (input) {
+              value = input.value
+            }
+          }
 
           if (helper.isValid(value)) {
             return {

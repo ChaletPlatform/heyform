@@ -1,17 +1,27 @@
-version: '3.9'
-
 networks:
-  heyform-keydb:
-  heyform-mail:
+  heyform-net:
 
 services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - heyform-net
+    depends_on:
+      - heyform
+
   heyform:
-    image: heyform-chalet:latest
+    image: ghcr.io/chaletplatform/heyform:latest
     restart: unless-stopped
     depends_on:
       - keydb
-    ports:
-      - '9157:9157'
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9157/health/ready >/dev/null || exit 1"]
       interval: 15s
@@ -21,7 +31,7 @@ services:
     env_file:
       - .env
     environment:
-      APP_HOMEPAGE_URL: ${APP_HOMEPAGE_URL:-http://localhost:9157}
+      APP_HOMEPAGE_URL: ${APP_HOMEPAGE_URL}
       SESSION_KEY: ${SESSION_KEY:?SESSION_KEY is required}
       FORM_ENCRYPTION_KEY: ${FORM_ENCRYPTION_KEY:?FORM_ENCRYPTION_KEY is required}
       MONGO_URI: ${MONGO_URI}
@@ -33,36 +43,32 @@ services:
       SMTP_USER: ${SMTP_USER}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       SMTP_SECURE: ${SMTP_SECURE:-false}
-      SMTP_SERVERNAME: ${SMTP_SERVERNAME:-}
       SMTP_IGNORE_CERT: ${SMTP_IGNORE_CERT:-false}
     volumes:
-      # Keep uploads between restarts (covers both current static path and runtime-served path)
       - ./assets:/app/packages/server/static/upload
       - ./assets:/app/packages/server/uploads
     networks:
-      - heyform-keydb
-      - heyform-mail
+      - heyform-net
 
   mailpit:
     image: axllent/mailpit:latest
     restart: unless-stopped
     ports:
-      - '8025:8025'
-      - '1025:1025'
+      # Web UI only accessible from localhost — use SSH tunnel to view: ssh -L 8025:localhost:8025 heyform-instance
+      - "127.0.0.1:8025:8025"
     networks:
-      - heyform-mail
-
+      - heyform-net
 
   keydb:
     image: eqalpha/keydb:latest
     restart: unless-stopped
-    ports:
-      - '9514:6379'
     command: keydb-server --appendonly yes --protected-mode no
     volumes:
       - keydb_data:/data
     networks:
-      - heyform-keydb
+      - heyform-net
 
 volumes:
   keydb_data:
+  caddy_data:
+  caddy_config:

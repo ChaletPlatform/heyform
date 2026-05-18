@@ -3,6 +3,11 @@ name: Build and Push to GHCR
 on:
   push:
     branches: [chalet/trustedform]
+    paths:
+      - 'packages/**'
+      - 'Dockerfile'
+      - 'pnpm-lock.yaml'
+      - 'package.json'
 
 env:
   REGISTRY: ghcr.io

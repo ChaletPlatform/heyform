@@ -50,15 +50,6 @@ services:
     networks:
       - heyform-net
 
-  mailpit:
-    image: axllent/mailpit:latest
-    restart: unless-stopped
-    ports:
-      # Web UI only accessible from localhost — use SSH tunnel to view: ssh -L 8025:localhost:8025 heyform-instance
-      - "127.0.0.1:8025:8025"
-    networks:
-      - heyform-net
-
   keydb:
     image: eqalpha/keydb:latest
     restart: unless-stopped

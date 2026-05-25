@@ -23,6 +23,7 @@ import { PictureChoice } from '../blocks/PictureChoice'
 import { Rating } from '../blocks/Rating'
 import { ShortText } from '../blocks/ShortText'
 import { Signature } from '../blocks/Signature'
+import { Group } from '../blocks/Group'
 import { Statement } from '../blocks/Statement'
 import { ThankYou } from '../blocks/ThankYou'
 import { Website } from '../blocks/Website'
@@ -101,6 +102,9 @@ function getBlock(
     case FieldKindEnum.SHORT_TEXT:
       return <ShortText key={field.id} field={field} transitionState={transitionState} />
 
+    case FieldKindEnum.GROUP:
+      return <Group key={field.id} field={field} transitionState={transitionState} />
+
     case FieldKindEnum.PAYMENT:
       return (
         <Payment
@@ -137,6 +141,15 @@ const Main: FC = () => {
     [state.fields, state.scrollIndex]
   )
 
+  // If scrollIndex lands on a group child (e.g. via sidebar or error nav),
+  // render the parent group instead so all children appear together on one page.
+  const effectiveField = useMemo(() => {
+    if (activeField?.parent) {
+      return state.fields.find(f => f.id === activeField.parent?.id) || activeField
+    }
+    return activeField
+  }, [activeField, state.fields])
+
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
       setIsReducedMotion(false)
@@ -163,17 +176,17 @@ const Main: FC = () => {
   }, [])
 
   useEffect(() => {
-    if (!activeField) {
-      previousFieldRef.current = activeField
+    if (!effectiveField) {
+      previousFieldRef.current = effectiveField
       return
     }
 
     const previousField = previousFieldRef.current
-    previousFieldRef.current = activeField
+    previousFieldRef.current = effectiveField
 
     if (
       !previousField ||
-      previousField.id === activeField.id ||
+      previousField.id === effectiveField.id ||
       previousField.kind === FieldKindEnum.PAYMENT
     ) {
       return
@@ -194,15 +207,15 @@ const Main: FC = () => {
     }, QUESTION_TRANSITION_DURATION)
 
     return () => window.clearTimeout(timeoutId)
-  }, [activeField, isReducedMotion, state.scrollTo])
+  }, [effectiveField, isReducedMotion, state.scrollTo])
 
   const activeBlock = useMemo(() => {
-    if (!activeField || activeField.kind === FieldKindEnum.PAYMENT) {
+    if (!effectiveField || effectiveField.kind === FieldKindEnum.PAYMENT) {
       return null
     }
 
-    return getBlock(activeField)
-  }, [activeField])
+    return getBlock(effectiveField)
+  }, [effectiveField])
 
   const leavingBlock = useMemo(() => {
     if (!leavingField) {
@@ -220,7 +233,7 @@ const Main: FC = () => {
     return getBlock(paymentField, paymentIndex)
   }, [paymentField, paymentIndex])
 
-  if (!activeField) {
+  if (!effectiveField) {
     return null
   }
 

@@ -6,7 +6,7 @@ import type {
   Logic,
   Variable
 } from '@heyform-inc/shared-types-enums'
-import { QUESTION_FIELD_KINDS } from '@heyform-inc/shared-types-enums'
+import { FieldKindEnum, QUESTION_FIELD_KINDS } from '@heyform-inc/shared-types-enums'
 import { useContext } from 'react'
 import store2 from 'store2'
 
@@ -196,14 +196,45 @@ const actions: any = {
       return state
     }
 
+    let targetIndex = state.scrollIndex! - 1
+
+    // Skip back over group children so Previous lands on the field before the group
+    const targetField = state.fields[targetIndex]
+    if (targetField?.parent) {
+      const parentIndex = state.fields.findIndex(f => f.id === targetField.parent?.id)
+      targetIndex = parentIndex > 0 ? parentIndex - 1 : 0
+    }
+
     return actions.scrollTo(state, {
-      scrollIndex: state.scrollIndex! - 1,
+      scrollIndex: targetIndex,
       scrollTo: 'previous'
     })
   },
 
   scrollNext: (state: IState) => {
     const { scrollIndex, fields, values, jumpFieldIds } = state
+    const currentField = fields[scrollIndex!]
+
+    // If on a GROUP or a group child, skip past all children to the next real field
+    const groupId =
+      currentField?.kind === FieldKindEnum.GROUP
+        ? currentField.id
+        : currentField?.parent?.id
+
+    if (groupId) {
+      let nextIndex = scrollIndex! + 1
+      while (
+        nextIndex < fields.length &&
+        (fields[nextIndex]?.parent?.id === groupId || fields[nextIndex]?.id === groupId)
+      ) {
+        nextIndex++
+      }
+      if (nextIndex >= fields.length) {
+        return { ...state, isScrollNextDisabled: true }
+      }
+      return actions.scrollTo(state, { scrollIndex: nextIndex, scrollTo: 'next' })
+    }
+
     const isTouched = validateLogicField(fields[scrollIndex!], jumpFieldIds, values)
 
     if (!isTouched || scrollIndex! >= fields.length - 1) {
@@ -220,10 +251,17 @@ const actions: any = {
   },
 
   scrollToField(state: IState, { fieldId, errorFieldId }: any) {
-    const index = state.fields.findIndex(f => f.id === fieldId)
+    let index = state.fields.findIndex(f => f.id === fieldId)
 
     if (index < 0) {
       return state
+    }
+
+    // If targeting a group child, redirect to the parent group
+    const field = state.fields[index]
+    if (field?.parent) {
+      const parentIndex = state.fields.findIndex(f => f.id === field.parent?.id)
+      if (parentIndex >= 0) index = parentIndex
     }
 
     return actions.scrollTo(state, {

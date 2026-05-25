@@ -2072,3 +2072,49 @@ button.heyform-submit-button {
     }
   }
 }
+
+/* ============================================================
+   Group block: render all children together on one page
+   Chalet addition — do not remove on upstream merge
+   ============================================================ */
+
+.heyform-group {
+  .heyform-group-form {
+    width: 100%;
+  }
+
+  .heyform-group-children {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin-top: 1rem;
+  }
+
+  .heyform-group-child {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .heyform-group-child-label {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+  }
+
+  .heyform-group-child-title {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--heyform-question-color, inherit);
+    opacity: 0.85;
+  }
+
+  .heyform-group-child-required {
+    color: var(--heyform-error-color, #ef4444);
+    font-size: 0.875rem;
+  }
+
+  .heyform-group-submit {
+    margin-top: 2rem;
+  }
+}

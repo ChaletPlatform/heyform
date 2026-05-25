@@ -148,6 +148,13 @@ const GroupChildField: FC<{ field: any; t: (s: string) => string }> = ({ field, 
         </div>
       )
 
+    case FieldKindEnum.STATEMENT:
+      return (
+        <div className="heyform-group-child heyform-group-child-statement">
+          {label}
+        </div>
+      )
+
     default:
       return (
         <div className="heyform-group-child">

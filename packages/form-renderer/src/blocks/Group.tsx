@@ -150,7 +150,7 @@ const GroupChildField: FC<{ field: any; t: (s: string) => string }> = ({ field, 
 
     case FieldKindEnum.STATEMENT:
       return (
-        <div className="heyform-group-child heyform-group-child-statement">
+        <div className="heyform-group-child heyform-group-child-statement text-xs">
           {label}
         </div>
       )

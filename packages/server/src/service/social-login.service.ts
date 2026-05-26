@@ -9,6 +9,7 @@ import {
   APPLE_LOGIN_PRIVATE_KEY_PATH,
   APPLE_LOGIN_TEAM_ID,
   APPLE_LOGIN_WEB_CLIENT_ID,
+  ALLOWED_EMAIL_DOMAINS,
   APP_DISABLE_REGISTRATION,
   APP_HOMEPAGE_URL,
   GOOGLE_LOGIN_CLIENT_ID,
@@ -140,6 +141,13 @@ export class SocialLoginService {
       if (!userId) {
         if (APP_DISABLE_REGISTRATION) {
           throw new BadRequestException('Error: Registration is disabled')
+        }
+
+        if (ALLOWED_EMAIL_DOMAINS.length > 0 && userInfo!.user.email) {
+          const domain = userInfo!.user.email.split('@')[1]?.toLowerCase()
+          if (!domain || !ALLOWED_EMAIL_DOMAINS.includes(domain)) {
+            throw new BadRequestException('Error: Registration is restricted to authorized email domains')
+          }
         }
 
         if (userInfo!.user.email) {

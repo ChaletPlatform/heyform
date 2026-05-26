@@ -1,7 +1,7 @@
 import { BadRequestException, UseGuards } from '@nestjs/common'
 
 import { GraphqlResponse } from '@decorator'
-import { APP_DISABLE_REGISTRATION, BCRYPT_SALT } from '@environments'
+import { ALLOWED_EMAIL_DOMAINS, APP_DISABLE_REGISTRATION, BCRYPT_SALT } from '@environments'
 import { SignUpInput } from '@graphql'
 import { DeviceIdGuard } from '@guard'
 import { helper } from '@heyform-inc/utils'
@@ -34,6 +34,13 @@ export class SignUpResolver {
       throw new BadRequestException(
         'Error: Disposable email address detected, please use a work email to create the account'
       )
+    }
+
+    if (ALLOWED_EMAIL_DOMAINS.length > 0) {
+      const domain = input.email.split('@')[1]?.toLowerCase()
+      if (!domain || !ALLOWED_EMAIL_DOMAINS.includes(domain)) {
+        throw new BadRequestException('Error: Registration is restricted to authorized email domains')
+      }
     }
 
     const existUser = await this.userService.findByEmail(input.email)

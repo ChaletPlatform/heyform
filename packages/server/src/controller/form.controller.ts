@@ -6,6 +6,8 @@ import {
   COOKIE_DOMAIN,
   ENABLE_GOOGLE_FONTS,
   GOOGLE_RECAPTCHA_KEY,
+  POSTHOG_HOST,
+  POSTHOG_KEY,
   STRIPE_PUBLISHABLE_KEY
 } from '@environments'
 
@@ -20,7 +22,9 @@ export class FormController {
         cookieDomain: COOKIE_DOMAIN,
         enableGoogleFonts: ENABLE_GOOGLE_FONTS,
         stripePublishableKey: STRIPE_PUBLISHABLE_KEY,
-        googleRecaptchaKey: GOOGLE_RECAPTCHA_KEY
+        googleRecaptchaKey: GOOGLE_RECAPTCHA_KEY,
+        posthogKey: POSTHOG_KEY,
+        posthogHost: POSTHOG_HOST
       }
     })
   }

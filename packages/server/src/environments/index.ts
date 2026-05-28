@@ -92,6 +92,10 @@ export const GOOGLE_RECAPTCHA_SECRET: string = process.env.GOOGLE_RECAPTCHA_SECR
 // Akismet
 export const AKISMET_KEY: string = process.env.AKISMET_KEY
 
+// PostHog (form viewer session replay — parent app must enable captureCrossOriginIframes)
+export const POSTHOG_KEY: string = process.env.POSTHOG_KEY
+export const POSTHOG_HOST: string = process.env.POSTHOG_HOST || 'https://us.i.posthog.com'
+
 // Social login
 export const APPLE_LOGIN_TEAM_ID: string = process.env.APPLE_LOGIN_TEAM_ID
 export const APPLE_LOGIN_WEB_CLIENT_ID: string = process.env.APPLE_LOGIN_WEB_CLIENT_ID

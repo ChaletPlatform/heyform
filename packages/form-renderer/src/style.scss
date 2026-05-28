@@ -786,7 +786,7 @@ button.button-icon-only {
 }
 
 .heyform-block-title {
-  @apply mb-2 text-3xl font-medium;
+  @apply mb-2 text-xl md:text-3xl font-medium;
   color: var(--heyform-question-color);
 }
 
@@ -1096,8 +1096,8 @@ button.button-icon-only {
   }
 
   .heyform-radio {
-    @apply mb-2 w-1/2 px-1 md:w-1/3 lg:w-1/4 self-stretch;
-    height: 12rem;
+    @apply mb-2 w-full px-1 md:w-1/2 self-stretch;
+    height: 14rem;
 
     &:hover {
       .heyform-radio-actions {
@@ -1124,7 +1124,7 @@ button.button-icon-only {
   }
 
   .heyform-radio-label {
-    @apply truncate;
+    @apply whitespace-normal break-words;
   }
 
   .heyform-radio-icon {

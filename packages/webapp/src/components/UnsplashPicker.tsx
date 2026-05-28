@@ -91,7 +91,7 @@ export const UnsplashPicker: FC<UnsplashPickerProps> = ({ onChange, ...restProps
           />
         )}
       >
-        <ul role="list" className="-ml-2 -mr-2 mt-4 flex flex-wrap">
+        <ul className="-ml-2 -mr-2 mt-4 flex flex-wrap">
           {images.map(row => (
             <UnsplashItem key={row.id} image={row} onChange={onChange} />
           ))}

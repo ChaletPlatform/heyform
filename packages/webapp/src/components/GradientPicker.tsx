@@ -32,7 +32,7 @@ const GradientItem: FC<GradientItemProps> = ({ value, onChange }) => {
 export const GradientPicker: FC<GradientPickerProps> = ({ onChange, ...restProps }) => {
   return (
     <div {...restProps}>
-      <ul role="list" className="-ml-2 -mr-2 flex flex-wrap">
+      <ul className="-ml-2 -mr-2 flex flex-wrap">
         {GRADIENTS.map((row, index) => (
           <GradientItem key={index} value={row} onChange={onChange} />
         ))}

@@ -43,7 +43,6 @@ export const Slider: FC<SliderProps> = ({
       <input
         className="absolute inset-0 h-full w-full cursor-pointer appearance-none opacity-0"
         type="range"
-        role="slider"
         min={min}
         max={max}
         step={step}

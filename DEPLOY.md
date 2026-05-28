@@ -143,6 +143,96 @@ For local dev, `docker-compose.test.yml` runs **Mailpit** instead — it catches
 
 ---
 
+## PostHog Session Replay
+
+Form pages embed a PostHog snippet so the parent app (`www.getchalet.com`) can capture form interactions in cross-origin iframe session replays.
+
+**Required env vars** (set on the EC2 box in `/opt/heyform/.env`):
+
+```
+POSTHOG_KEY=<phc_... — same value as NEXT_PUBLIC_POSTHOG_KEY in chalet-nextjs>
+POSTHOG_HOST=https://us.i.posthog.com
+```
+
+`POSTHOG_KEY` is the client-side project key. Not a secret — it ships in browser bundles. Just stored in env so it can be swapped without a rebuild. Leave blank to disable the snippet (it's gated by `{{#if heyform.posthogKey}}` in `view/index.html`).
+
+**Parent-app side:** `instrumentation-client.ts` in chalet-nextjs must initialize PostHog with `session_recording: { captureCrossOriginIframes: true }`. The iframe initializes with `recordCrossOriginIframes: true`. Both required.
+
+**Verify:**
+
+```bash
+curl -s https://forms.getchalet.com/form/<FORM_ID> | grep -o "posthog.init('phc_[^']*'"
+# Should print: posthog.init('phc_...'
+```
+
+---
+
+## EC2 GHCR Authentication
+
+The GHCR image is private. Docker on the EC2 box authenticates via a GitHub Personal Access Token stored in `/root/.docker/config.json` (root because `sudo docker compose` is what compose runs as).
+
+**To set up or refresh:**
+
+1. Generate a **classic** PAT at https://github.com/settings/tokens (not fine-grained — those don't work cleanly with org-owned GHCR packages). Scope: `read:packages` only. Expiration: prefer "No expiration" or set a calendar reminder.
+2. On the EC2 box:
+   ```bash
+   echo 'ghp_xxxx' | sudo docker login ghcr.io -u <github-username> --password-stdin
+   ```
+3. The login persists. Future `sudo docker compose pull` works without re-auth.
+
+**If `pull` returns `denied` after successful login**, the user has GitHub access but not package access. Grant at:
+https://github.com/orgs/ChaletPlatform/packages/container/heyform/settings → Manage Actions access → invite user (Read).
+
+---
+
+## Troubleshooting
+
+### Container crash loops on startup with `ERR_REQUIRE_ESM`
+
+A regenerated `pnpm-lock.yaml` likely pulled in an ESM-only version of a dep (e.g. `uuid@13+`) that HeyForm's CJS code can't `require()`. Fix:
+
+```bash
+# On your laptop, in the heyform repo on chalet/trustedform
+git checkout <last-known-good-commit> -- pnpm-lock.yaml pnpm-workspace.yaml
+git commit -m "fix: revert lockfile to working state"
+git push
+# Wait for CI green, then redeploy
+```
+
+Don't include lockfile regenerations in commits unless you've tested the build locally first.
+
+### Force-recreate the running container
+
+```bash
+cd /opt/heyform && \
+sudo docker compose pull heyform && \
+sudo docker compose up -d --force-recreate heyform
+```
+
+`--force-recreate` matters — without it compose may keep the running container even after a fresh image is pulled.
+
+### Roll back to a previous image
+
+Every CI build pushes both `:latest` and `:<short-sha>` tags to GHCR. To roll back:
+
+```bash
+sudo docker pull ghcr.io/chaletplatform/heyform:<old-sha>
+# Edit /opt/heyform/docker-compose.yml — change image tag from :latest to :<old-sha>
+sudo docker compose up -d --force-recreate heyform
+```
+
+Form data lives in MongoDB Atlas — container rollbacks/restarts never touch it.
+
+### Watch what the container actually has
+
+```bash
+sudo docker exec heyform-heyform-1 sh -c 'echo $POSTHOG_KEY'     # env vars
+sudo docker compose logs --tail=80 heyform                        # logs
+sudo docker compose ps                                            # status
+```
+
+---
+
 ## Remaining Tasks
 
 - [x] Point `forms.getchalet.com` DNS A record to `34.214.175.119`

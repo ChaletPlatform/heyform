@@ -1,18 +1,13 @@
 import { FieldKindEnum } from '@heyform-inc/shared-types-enums'
 import { isValidPhoneNumber } from 'libphonenumber-js'
-import { FC, useState } from 'react'
 import RCForm, { useForm } from 'rc-field-form'
+import { FC, useState } from 'react'
 
-import {
-  getNavigateFieldId,
-  removeHeading,
-  sendMessageToParent,
-  useTranslation
-} from '../utils'
+import { getNavigateFieldId, removeHeading, sendMessageToParent, useTranslation } from '../utils'
 import { applyLogicToFields, validateFields } from '@heyform-inc/answer-utils'
 import { clone, helper } from '@heyform-inc/utils'
 
-import { FormField, Input, PhoneNumberInput, Textarea, Submit } from '../components'
+import { FormField, Input, PhoneNumberInput, Submit, Textarea } from '../components'
 import { removeStorage, useStore } from '../store'
 import type { BlockProps } from './Block'
 import { Block } from './Block'
@@ -58,32 +53,28 @@ const GroupChildField: FC<{ field: any; t: (s: string) => string }> = ({ field, 
       return (
         <div className="heyform-group-child">
           {label}
-          <div className="flex w-full items-start justify-items-stretch space-x-4">
-            <FormField
-              className="flex-1"
-              name={[field.id, 'firstName']}
-              rules={[
-                {
-                  required: field.validations?.required,
-                  message: t('This field is required')
-                }
-              ]}
-            >
-              <Input placeholder={t('First Name')} />
-            </FormField>
-            <FormField
-              className="flex-1"
-              name={[field.id, 'lastName']}
-              rules={[
-                {
-                  required: field.validations?.required,
-                  message: t('This field is required')
-                }
-              ]}
-            >
-              <Input placeholder={t('Last Name')} />
-            </FormField>
-          </div>
+          <FormField
+            name={field.id}
+            getValueProps={(v: any) => ({
+              value: [v?.firstName, v?.lastName].filter(Boolean).join(' ')
+            })}
+            normalize={(v: string) => {
+              const raw = (v ?? '').trim()
+              if (!raw) return undefined
+              const idx = raw.indexOf(' ')
+              return idx === -1
+                ? { firstName: raw, lastName: '' }
+                : { firstName: raw.slice(0, idx), lastName: raw.slice(idx + 1).trim() }
+            }}
+            rules={[
+              {
+                required: field.validations?.required,
+                message: t('This field is required')
+              }
+            ]}
+          >
+            <Input placeholder={t('Full Name')} />
+          </FormField>
         </div>
       )
 
@@ -149,11 +140,7 @@ const GroupChildField: FC<{ field: any; t: (s: string) => string }> = ({ field, 
       )
 
     case FieldKindEnum.STATEMENT:
-      return (
-        <div className="heyform-group-child heyform-group-child-statement">
-          {label}
-        </div>
-      )
+      return <div className="heyform-group-child heyform-group-child-statement">{label}</div>
 
     default:
       return (
@@ -326,7 +313,11 @@ export const Group: FC<BlockProps> = ({ field, ...restProps }) => {
 
   if (children.length === 0) {
     return (
-      <Block className="heyform-group heyform-statement heyform-empty-state" field={field} {...restProps}>
+      <Block
+        className="heyform-group heyform-statement heyform-empty-state"
+        field={field}
+        {...restProps}
+      >
         <RCForm form={form} onFinish={handleFinish}>
           <Submit text={t('Next')} />
         </RCForm>
@@ -357,7 +348,7 @@ export const Group: FC<BlockProps> = ({ field, ...restProps }) => {
             </div>
           )}
           <Submit
-            text={isEffectivelyLastBlock ? t('Submit') : (field.properties?.buttonText || t('Next'))}
+            text={isEffectivelyLastBlock ? t('Submit') : field.properties?.buttonText || t('Next')}
             loading={loading}
           />
         </div>

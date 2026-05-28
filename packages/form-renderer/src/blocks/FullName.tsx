@@ -14,45 +14,35 @@ export const FullName: FC<BlockProps> = ({ field, ...restProps }) => {
   const { t } = useTranslation()
 
   function getValues(values: any) {
-    return helper.isValid(values?.firstName) || helper.isValid(values?.lastName)
-      ? values
-      : undefined
+    const raw = (values?.fullName ?? '').trim()
+    if (!helper.isValid(raw)) return undefined
+    const idx = raw.indexOf(' ')
+    const firstName = idx === -1 ? raw : raw.slice(0, idx)
+    const lastName = idx === -1 ? '' : raw.slice(idx + 1).trim()
+    return { firstName, lastName }
   }
+
+  const stored = state.values[field.id] as { firstName?: string; lastName?: string } | undefined
+  const initialFullName = [stored?.firstName, stored?.lastName].filter(Boolean).join(' ')
 
   return (
     <Block className="heyform-full-name" field={field} {...restProps}>
       <Form
-        initialValues={initialValue(state.values[field.id])}
+        initialValues={initialValue({ fullName: initialFullName })}
         field={field}
         getValues={getValues}
       >
-        <div className="flex w-full items-start justify-items-stretch space-x-4">
-          <FormField
-            className="flex-1"
-            name="firstName"
-            rules={[
-              {
-                required: field.validations?.required,
-                message: t('This field is required')
-              }
-            ]}
-          >
-            <Input placeholder={t('First Name')} />
-          </FormField>
-
-          <FormField
-            className="flex-1"
-            name="lastName"
-            rules={[
-              {
-                required: field.validations?.required,
-                message: t('This field is required')
-              }
-            ]}
-          >
-            <Input placeholder={t('Last Name')} />
-          </FormField>
-        </div>
+        <FormField
+          name="fullName"
+          rules={[
+            {
+              required: field.validations?.required,
+              message: t('This field is required')
+            }
+          ]}
+        >
+          <Input placeholder={t('Full Name')} />
+        </FormField>
       </Form>
     </Block>
   )

@@ -41,9 +41,34 @@ export interface FormRendererProps {
 }
 
 // Skip a question when a matching hidden field arrives pre-filled (URL query
-// or DOM input). Keyed by hidden-field name → field IDs to drop.
-const SKIP_FIELDS_WHEN_HIDDEN_SET: Record<string, string[]> = {
-  market_of_interest: ['IyHtFyh8QvL8']
+// or DOM input). Keyed by hidden-field name → matchers (field IDs OR
+// case-insensitive title substrings — title fallback survives form rebuilds
+// that reissue field IDs).
+type FieldMatcher = { id?: string; titleIncludes?: string }
+const SKIP_FIELDS_WHEN_HIDDEN_SET: Record<string, FieldMatcher[]> = {
+  market_of_interest: [
+    { id: 'IyHtFyh8QvL8' },
+    { titleIncludes: 'investment markets are you eyeing' }
+  ]
+}
+
+function fieldTitleText(title: any): string {
+  if (typeof title === 'string') return title
+  if (Array.isArray(title)) {
+    return title
+      .map(part => (Array.isArray(part) ? fieldTitleText(part[1]) : String(part ?? '')))
+      .join(' ')
+  }
+  return ''
+}
+
+function fieldMatches(field: FormField, matcher: FieldMatcher): boolean {
+  if (matcher.id && field.id === matcher.id) return true
+  if (matcher.titleIncludes) {
+    const text = fieldTitleText(field.title).toLowerCase()
+    if (text.includes(matcher.titleIncludes.toLowerCase())) return true
+  }
+  return false
 }
 
 // Sentinel value our upstream sends when the user didn't specify a market —
@@ -87,21 +112,31 @@ function initStore(
     allFields = allFields.filter(f => f.kind !== FieldKindEnum.PAYMENT)
   }
 
+  // For each hidden field that's set, drop the matching question(s) AND
+  // pre-seed an answer so any downstream validation/logic sees them as filled.
   const skipIds = new Set<string>()
-  for (const [hiddenName, fieldIds] of Object.entries(SKIP_FIELDS_WHEN_HIDDEN_SET)) {
-    if (helper.isValid(readHiddenValue(hiddenName, query))) {
-      fieldIds.forEach(id => skipIds.add(id))
-    }
+  const seededValues: Record<string, any> = {}
+  for (const [hiddenName, matchers] of Object.entries(SKIP_FIELDS_WHEN_HIDDEN_SET)) {
+    const hiddenValue = readHiddenValue(hiddenName, query)
+    if (!helper.isValid(hiddenValue)) continue
+    allFields.forEach(f => {
+      if (matchers.some(m => fieldMatches(f, m))) {
+        skipIds.add(f.id)
+        seededValues[f.id] = hiddenValue
+      }
+    })
   }
   if (skipIds.size > 0) {
-    allFields = allFields.filter(f => !skipIds.has(f.id))
+    allFields = allFields
+      .filter(f => !skipIds.has(f.id))
+      .map(f => (f.parent && skipIds.has(f.parent.id) ? { ...f, parent: undefined } : f))
   }
 
   const jumpFieldIds = (form.logics || [])
     .filter(l => l.payloads.some(p => p.action.kind === ActionEnum.NAVIGATE))
     .map(l => l.fieldId)
 
-  const values = getStorage(form.id, autoSave)
+  const values = { ...getStorage(form.id, autoSave), ...seededValues }
   const { fields, variables } = applyLogicToFields(
     [...allFields, ...thankYouFields].filter(Boolean) as FormField[],
     form.logics,

@@ -356,8 +356,8 @@ button.button-icon-only {
 // ----------------------------------------------------------------------------
 // Radio
 .heyform-radio {
-  @apply mb-2 cursor-pointer;
-  min-height: 2.5rem;
+  @apply mb-1.5 cursor-pointer sm:mb-2;
+  min-height: 2.25rem;
 
   &.heyform-radio-highlighted {
     .heyform-radio-container {
@@ -367,7 +367,7 @@ button.button-icon-only {
 }
 
 .heyform-radio-container {
-  @apply flex w-full rounded-lg px-5 py-4 transition;
+  @apply flex w-full rounded-lg px-4 py-2.5 transition sm:px-5 sm:py-4;
 
   background-color: var(--heyform-answer-opacity-10-color);
   color: var(--heyform-answer-color);
@@ -785,7 +785,7 @@ button.button-icon-only {
 }
 
 .heyform-block-header {
-  @apply mb-10;
+  @apply mb-6 sm:mb-10;
 }
 
 .heyform-block-title {

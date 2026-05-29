@@ -367,13 +367,15 @@ button.button-icon-only {
 }
 
 .heyform-radio-container {
-  @apply flex w-full rounded-md px-3 py-2 transition;
+  @apply flex w-full rounded-lg px-5 py-4 transition;
 
   background-color: var(--heyform-answer-opacity-10-color);
   color: var(--heyform-answer-color);
+  box-shadow: var(--heyform-answer-opacity-30-color) 0 0 0 1px inset;
 
   &:hover {
     background-color: var(--heyform-answer-opacity-30-color);
+    box-shadow: var(--heyform-answer-opacity-60-color) 0 0 0 1px inset;
   }
 }
 
@@ -419,7 +421,8 @@ button.button-icon-only {
 
 .heyform-radio-selected {
   .heyform-radio-container {
-    box-shadow: none;
+    background-color: var(--heyform-answer-opacity-30-color);
+    box-shadow: var(--heyform-answer-color) 0 0 0 2px inset;
   }
 
   .heyform-radio-hotkey {
@@ -1623,12 +1626,12 @@ button.button-icon-only {
   @apply flex items-center;
 
   span {
-    @apply ml-2 hidden md:block;
+    @apply ml-2 block font-medium;
   }
 }
 
 .heyform-circular-progressbar {
-  @apply h-6 w-6 md:h-4 md:w-4;
+  @apply h-5 w-5;
 }
 
 .heyform-circular-circle {
@@ -1706,16 +1709,18 @@ button.heyform-pagination-previous {
 }
 
 .heyform-submit-container {
-  @apply mt-8 flex items-center transition-opacity duration-500;
+  @apply mt-5 flex items-center transition-opacity duration-500;
 }
 
 button.heyform-submit-button {
-  @apply relative inline-flex items-center justify-center rounded-md px-5 py-1.5 text-lg font-medium shadow-none outline-none;
+  @apply relative inline-flex items-center justify-center rounded-md px-7 py-3 text-lg font-semibold outline-none;
   background-color: var(--heyform-button-color);
   color: var(--heyform-button-text-color);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 
   &:hover {
     background-color: var(--heyform-button-opacity-80-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   }
 
   svg {

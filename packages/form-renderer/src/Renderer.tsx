@@ -46,18 +46,26 @@ const SKIP_FIELDS_WHEN_HIDDEN_SET: Record<string, string[]> = {
   market_of_interest: ['IyHtFyh8QvL8']
 }
 
+// Sentinel value our upstream sends when the user didn't specify a market —
+// treat it as absent so the question still renders.
+const HIDDEN_FIELD_UNSET_SENTINELS = new Set(['not specified'])
+
 function readHiddenValue(name: string, query: Record<string, any>): string | undefined {
+  let value: string | undefined
+
   const fromQuery = query?.[name]
   if (helper.isValid(fromQuery) && String(fromQuery).length > 0) {
-    return String(fromQuery)
-  }
-
-  if (typeof document !== 'undefined') {
+    value = String(fromQuery)
+  } else if (typeof document !== 'undefined') {
     const input = document.querySelector<HTMLInputElement>(`input[name="${name}"]`)
     if (input?.value) {
-      return input.value
+      value = input.value
     }
   }
+
+  if (!value) return
+  if (HIDDEN_FIELD_UNSET_SENTINELS.has(value.trim().toLowerCase())) return
+  return value
 }
 
 function initStore(

@@ -40,11 +40,32 @@ export interface FormRendererProps {
   onSubmit?: (values: Record<string, any>, isPartial?: boolean, stripe?: IStripe) => Promise<void>
 }
 
+// Skip a question when a matching hidden field arrives pre-filled (URL query
+// or DOM input). Keyed by hidden-field name → field IDs to drop.
+const SKIP_FIELDS_WHEN_HIDDEN_SET: Record<string, string[]> = {
+  market_of_interest: ['IyHtFyh8QvL8']
+}
+
+function readHiddenValue(name: string, query: Record<string, any>): string | undefined {
+  const fromQuery = query?.[name]
+  if (helper.isValid(fromQuery) && String(fromQuery).length > 0) {
+    return String(fromQuery)
+  }
+
+  if (typeof document !== 'undefined') {
+    const input = document.querySelector<HTMLInputElement>(`input[name="${name}"]`)
+    if (input?.value) {
+      return input.value
+    }
+  }
+}
+
 function initStore(
   form: IFormModel,
   locale: string,
   autoSave: boolean,
   allowPayment: boolean,
+  query: Record<string, any>,
   ssr?: boolean
 ): IState {
   const list = parseFields(form.fields, form.translations?.[locale])
@@ -56,6 +77,16 @@ function initStore(
 
   if (!allowPayment) {
     allFields = allFields.filter(f => f.kind !== FieldKindEnum.PAYMENT)
+  }
+
+  const skipIds = new Set<string>()
+  for (const [hiddenName, fieldIds] of Object.entries(SKIP_FIELDS_WHEN_HIDDEN_SET)) {
+    if (helper.isValid(readHiddenValue(hiddenName, query))) {
+      fieldIds.forEach(id => skipIds.add(id))
+    }
+  }
+  if (skipIds.size > 0) {
+    allFields = allFields.filter(f => !skipIds.has(f.id))
   }
 
   const jumpFieldIds = (form.logics || [])
@@ -151,7 +182,7 @@ export const FormRenderer: FC<FormRendererProps> = ({
       enableQuestionList: isQuestionListEnabled,
       enableNavigationArrows: isNavigationArrowsEnabled,
       onSubmit,
-      ...initStore(form, locale, autoSave, allowPayment, ssr),
+      ...initStore(form, locale, autoSave, allowPayment, query, ssr),
       query
     }),
     [

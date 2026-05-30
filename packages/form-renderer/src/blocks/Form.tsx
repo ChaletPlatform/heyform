@@ -48,10 +48,7 @@ export const Form: FC<FormProps> = ({
   const [loading, setLoading] = useState(false)
   const [submitError, setSubmitError] = useState<string>()
 
-  const autoSubmit = useMemo(
-    () => (state.alwaysShowNextButton ? false : rawAutoSubmit),
-    [rawAutoSubmit, state.alwaysShowNextButton]
-  )
+  const autoSubmit = rawAutoSubmit
 
   const validateTrigger = trigger ? trigger : autoSubmit ? 'onChange' : 'onSubmit'
   const isLastBlock = useMemo(
@@ -286,9 +283,9 @@ export const Form: FC<FormProps> = ({
       autoComplete="off"
       form={form}
       validateTrigger={validateTrigger}
+      {...restProps}
       onValuesChange={handleValuesChange}
       onFinish={handleFinish}
-      {...restProps}
     >
       {children}
 

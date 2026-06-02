@@ -282,6 +282,16 @@ export default function MultipleChoiceSettings({ field }: RequiredSettingsProps)
           onChange={value => handleChange('badge', value)}
         />
       </div>
+
+      <div className="flex items-center justify-between">
+        <label className="text-sm/6" htmlFor="#">
+          {t('form.builder.settings.multipleChoice.displayAsDropdown')}
+        </label>
+        <Switch
+          value={field.properties?.displayAs === 'dropdown'}
+          onChange={value => handleChange('displayAs', value ? 'dropdown' : 'buttons')}
+        />
+      </div>
     </>
   )
 }

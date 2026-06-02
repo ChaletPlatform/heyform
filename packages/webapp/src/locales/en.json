@@ -1396,7 +1396,8 @@
             "letter": "Letter",
             "number": "Number"
           },
-          "verticalAlignment": "Vertical alignment"
+          "verticalAlignment": "Vertical alignment",
+          "displayAsDropdown": "Display as dropdown"
         }
       },
       "design": {

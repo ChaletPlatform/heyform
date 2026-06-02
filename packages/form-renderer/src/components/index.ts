@@ -1,4 +1,5 @@
 export * from './Button'
+export * from './ChoiceDropdown'
 export * from './ChoiceRadioGroup'
 export * from './CountrySelect'
 export * from './DateInput'

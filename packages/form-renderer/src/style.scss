@@ -1070,6 +1070,33 @@ button.button-icon-only {
   }
 }
 
+// ----------------------------------------------------------------------------
+// Multiple choice dropdown variant
+.heyform-choice-dropdown {
+  @apply cursor-pointer;
+}
+
+.heyform-choice-dropdown-popup {
+  padding: 8px 16px 8px 8px; // extra right padding prevents scrollbar overlap
+  border-radius: 12px;
+  background-color: var(--heyform-background-color);
+  @apply shadow-lg border;
+
+  .heyform-radio {
+    @apply mb-2;
+    min-height: unset;
+
+    &:last-child {
+      @apply mb-0;
+    }
+  }
+
+  .heyform-radio-container {
+    @apply px-3 py-2;
+    min-width: unset;
+  }
+}
+
 .heyform-radio-label {
   .input {
     @apply p-0 text-base;

@@ -149,6 +149,9 @@ export interface Property {
   // Score
   score?: number
 
+  // Display variant for multiple choice
+  displayAs?: 'buttons' | 'dropdown'
+
   // HeyForm Form Builder v2.0
   // Embed & Image
   sourceUrl?: string

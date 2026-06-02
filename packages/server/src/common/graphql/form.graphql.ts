@@ -169,6 +169,9 @@ class SharedPropertyInput {
   score?: number
 
   @Field({ nullable: true })
+  displayAs?: string
+
+  @Field({ nullable: true })
   @IsUrl()
   sourceUrl?: string
 

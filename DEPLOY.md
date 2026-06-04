@@ -147,23 +147,71 @@ For local dev, `docker-compose.test.yml` runs **Mailpit** instead — it catches
 
 Form pages embed a PostHog snippet so the parent app (`www.getchalet.com`) can capture form interactions in cross-origin iframe session replays.
 
-**Required env vars** (set on the EC2 box in `/opt/heyform/.env`):
+### How it works
+
+1. **Parent (getchalet.com)** initializes PostHog with `session_recording: { recordCrossOriginIframes: true }` in `instrumentation-client.ts`. API calls are proxied via `/chalet-ph` → `us.i.posthog.com` (configured in `next.config.ts` rewrites).
+2. **Child iframe (forms.getchalet.com)** initializes PostHog with the same project key and `session_recording: { recordCrossOriginIframes: true }` via the CDN snippet in `view/index.html`. API calls are proxied via `/chaletforms-ph` → `us.i.posthog.com` (configured in the Caddyfile).
+3. Both **must use the same PostHog project API key** for the cross-origin `postMessage` bridge to connect.
+4. The child iframe does not send its own session recordings — it pipes DOM snapshots to the parent via `postMessage`, which includes them in the parent's recording.
+
+### Reverse proxy (Caddyfile)
+
+Caddy proxies PostHog requests to avoid ad blockers and ensure the `/decide` call succeeds (which enables session recording in the iframe):
+
+```
+forms.getchalet.com {
+    handle /chaletforms-ph/static/* {
+        uri strip_prefix /chaletforms-ph
+        reverse_proxy https://us-assets.i.posthog.com {
+            header_up Host us-assets.i.posthog.com
+        }
+    }
+
+    handle /chaletforms-ph/* {
+        uri strip_prefix /chaletforms-ph
+        reverse_proxy https://us.i.posthog.com {
+            header_up Host us.i.posthog.com
+        }
+    }
+
+    handle {
+        reverse_proxy heyform:9157
+    }
+}
+```
+
+### Required env vars
+
+Set on the EC2 box in `/opt/heyform/.env`:
 
 ```
 POSTHOG_KEY=<phc_... — same value as NEXT_PUBLIC_POSTHOG_KEY in chalet-nextjs>
-POSTHOG_HOST=https://us.i.posthog.com
+POSTHOG_HOST=https://forms.getchalet.com/chaletforms-ph
 ```
 
-`POSTHOG_KEY` is the client-side project key. Not a secret — it ships in browser bundles. Just stored in env so it can be swapped without a rebuild. Leave blank to disable the snippet (it's gated by `{{#if heyform.posthogKey}}` in `view/index.html`).
+- `POSTHOG_KEY` — client-side project key (not a secret, ships in browser bundles). Must match the parent app's key. Leave blank to disable the snippet (gated by `{{#if heyform.posthogKey}}` in `view/index.html`).
+- `POSTHOG_HOST` — points to the Caddy reverse proxy, not directly to PostHog.
 
-**Parent-app side:** `instrumentation-client.ts` in chalet-nextjs must initialize PostHog with `session_recording: { captureCrossOriginIframes: true }`. The iframe initializes with `recordCrossOriginIframes: true`. Both required.
-
-**Verify:**
+### Verify
 
 ```bash
+# Check the snippet renders with the correct key
 curl -s https://forms.getchalet.com/form/<FORM_ID> | grep -o "posthog.init('phc_[^']*'"
 # Should print: posthog.init('phc_...'
+
+# Check the reverse proxy works
+curl -s -o /dev/null -w "%{http_code}" "https://forms.getchalet.com/chaletforms-ph/decide?v=3"
+# Should print: 200
 ```
+
+### Troubleshooting
+
+If the iframe content doesn't appear in session replays:
+
+1. **Check keys match** — both parent and child must use the same PostHog project API key.
+2. **Check recording starts** — in Chrome DevTools, select the `forms.getchalet.com` iframe context from the console dropdown, then run `window.posthog.sessionRecording?.started`. Must be `true`.
+3. **Check proxy works** — `curl https://forms.getchalet.com/chaletforms-ph/decide?v=3` should return 200.
+4. **Check PostHog project settings** — no URL triggers or domain restrictions should block `forms.getchalet.com`.
 
 ---
 

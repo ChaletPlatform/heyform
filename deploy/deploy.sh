@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Blue-green zero-downtime deploy for HeyForm
 set -euo pipefail
 
 # Blue-green zero-downtime deploy for HeyForm

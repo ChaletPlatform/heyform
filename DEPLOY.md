@@ -215,6 +215,45 @@ If the iframe content doesn't appear in session replays:
 
 ---
 
+## PostHog Engagement Analytics
+
+Beyond session replay, the form renderer fires structured PostHog events for per-question engagement tracking, drop-off analysis, and funnel reporting.
+
+### Events
+
+All events include `form_id`, `session_id` (anonymous, stable per session), and `question_count`.
+
+| Event | When it fires | Extra properties |
+|-------|--------------|-----------------|
+| `heyform_loaded` | Form page renders | — |
+| `heyform_started` | User clicks Start (welcome screen) or answers first question (no welcome) | — |
+| `heyform_question_viewed` | Each question renders | `question_id`, `question_index`, `question_title`, `question_type` |
+| `heyform_question_answered` | User completes a question | `question_id`, `question_index`, `question_title`, `question_type` |
+| `heyform_submitted` | Successful submission | `completion_time_seconds`, `answers_count` |
+| `heyform_abandoned` | Tab close / visibility hidden (only if user started but didn't submit) | `last_question_index`, `last_question_id`, `answers_count`, `completion_pct` |
+
+### What you can build in PostHog
+
+- **Form funnel:** loaded → started → Q1 viewed → Q2 viewed → ... → submitted
+- **Per-question drop-off:** filter `heyform_question_viewed` by `question_index`, compare counts
+- **Submit rate:** submitted / loaded (or submitted / started)
+- **Completion time:** `completion_time_seconds` on `heyform_submitted`
+- **Abandonment analysis:** `heyform_abandoned` → `last_question_index` shows where users leave
+
+### Implementation
+
+The tracking lives in a single React hook:
+- `packages/form-renderer/src/hooks/usePostHogTracking.ts` — fires events via `window.posthog?.capture()`
+- Wired into `packages/form-renderer/src/views/Blocks.tsx` — one `usePostHogTracking()` call
+
+No PostHog npm package — uses the global `window.posthog` from the CDN snippet. Gracefully no-ops if PostHog isn't configured.
+
+### Conditional branching
+
+Forms with logic/branching work automatically. The `state.fields` array is already filtered by `applyLogicToFields()` — events only fire for questions the user actually sees. PostHog funnels handle divergent paths natively.
+
+---
+
 ## EC2 GHCR Authentication
 
 The GHCR image is private. Docker on the EC2 box authenticates via a GitHub Personal Access Token stored in `/root/.docker/config.json` (root because `sudo docker compose` is what compose runs as).

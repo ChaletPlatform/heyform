@@ -29,6 +29,7 @@ import { ThankYou } from '../blocks/ThankYou'
 import { Website } from '../blocks/Website'
 import { Welcome } from '../blocks/Welcome'
 import { YesNo } from '../blocks/YesNo'
+import { usePostHogTracking } from '../hooks/usePostHogTracking'
 import { useStore } from '../store'
 import { Footer } from './Footer'
 import { Header } from './Header'
@@ -261,6 +262,7 @@ const Main: FC = () => {
 export const Blocks = () => {
   const { state } = useStore()
   const { t } = useTranslation()
+  usePostHogTracking()
 
   function handleResize() {
     if (window.heyform.device.android) {

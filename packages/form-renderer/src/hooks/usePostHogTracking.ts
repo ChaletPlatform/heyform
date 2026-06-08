@@ -18,7 +18,7 @@ function getPostHog() {
 }
 
 function titleToPlainText(title: any): string {
-  if (typeof title === 'string') return title
+  if (typeof title === 'string') return htmlUtils.plain(title)
   if (Array.isArray(title)) {
     return htmlUtils.plain(htmlUtils.serialize(title))
   }

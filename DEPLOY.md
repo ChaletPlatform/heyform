@@ -247,20 +247,20 @@ All events include `form_id`, `session_id` (anonymous, stable per session), and 
 
 | Event | When it fires | Extra properties |
 |-------|--------------|-----------------|
-| `heyform_loaded` | Form page renders | — |
-| `heyform_started` | User clicks Start (welcome screen) or answers first question (no welcome) | — |
-| `heyform_question_viewed` | Each question renders | `question_id`, `question_index`, `question_title`, `question_type` |
-| `heyform_question_answered` | User completes a question | `question_id`, `question_index`, `question_title`, `question_type` |
-| `heyform_submitted` | Successful submission | `completion_time_seconds`, `answers_count` |
-| `heyform_abandoned` | Tab close / visibility hidden (only if user started but didn't submit) | `last_question_index`, `last_question_id`, `answers_count`, `completion_pct` |
+| `form_loaded` | Form page renders | — |
+| `form_started` | User clicks Start (welcome screen) or answers first question (no welcome) | — |
+| `form_question_viewed` | Each question renders | `question_id`, `question_index`, `question_title`, `question_type` |
+| `form_question_answered` | User completes a question | `question_id`, `question_index`, `question_title`, `question_type` |
+| `form_submitted` | Successful submission | `completion_time_seconds`, `answers_count` |
+| `form_abandoned` | Tab close / visibility hidden (only if user started but didn't submit) | `last_question_index`, `last_question_id`, `answers_count`, `completion_pct` |
 
 ### What you can build in PostHog
 
 - **Form funnel:** loaded → started → Q1 viewed → Q2 viewed → ... → submitted
-- **Per-question drop-off:** filter `heyform_question_viewed` by `question_index`, compare counts
+- **Per-question drop-off:** filter `form_question_viewed` by `question_index`, compare counts
 - **Submit rate:** submitted / loaded (or submitted / started)
-- **Completion time:** `completion_time_seconds` on `heyform_submitted`
-- **Abandonment analysis:** `heyform_abandoned` → `last_question_index` shows where users leave
+- **Completion time:** `completion_time_seconds` on `form_submitted`
+- **Abandonment analysis:** `form_abandoned` → `last_question_index` shows where users leave
 
 ### Implementation
 

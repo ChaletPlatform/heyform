@@ -49,12 +49,12 @@ export function usePostHogTracking() {
     question_count: state.questionCount
   })
 
-  // heyform_loaded — once on mount
+  // form_loaded — once on mount
   useEffect(() => {
-    getPostHog()?.capture('heyform_loaded', commonProps())
+    getPostHog()?.capture('form_loaded', commonProps())
   }, [])
 
-  // heyform_started — user engaged with the form:
+  // form_started — user engaged with the form:
   // - Welcome screen: clicks Start (isStarted flips true)
   // - No welcome screen: answers the first question (first key appears in values)
   useEffect(() => {
@@ -67,11 +67,11 @@ export function usePostHogTracking() {
 
     if (shouldFire) {
       startedAtRef.current = Date.now()
-      getPostHog()?.capture('heyform_started', commonProps())
+      getPostHog()?.capture('form_started', commonProps())
     }
   }, [state.isStarted, state.values])
 
-  // heyform_question_viewed — when scrollIndex changes
+  // form_question_viewed — when scrollIndex changes
   useEffect(() => {
     if (state.scrollIndex == null) return
     if (state.scrollIndex === prevScrollIndexRef.current) return
@@ -79,13 +79,13 @@ export function usePostHogTracking() {
     prevScrollIndexRef.current = state.scrollIndex
     const field = state.fields[state.scrollIndex]
 
-    getPostHog()?.capture('heyform_question_viewed', {
+    getPostHog()?.capture('form_question_viewed', {
       ...commonProps(),
       ...questionProps(field, state.scrollIndex)
     })
   }, [state.scrollIndex])
 
-  // heyform_question_answered — when a new key appears in state.values
+  // form_question_answered — when a new key appears in state.values
   useEffect(() => {
     const currentKeys = Object.keys(state.values)
 
@@ -95,7 +95,7 @@ export function usePostHogTracking() {
         const fieldIndex = state.fields.findIndex((f: IFormField) => f.id === key)
 
         if (fieldIndex >= 0) {
-          getPostHog()?.capture('heyform_question_answered', {
+          getPostHog()?.capture('form_question_answered', {
             ...commonProps(),
             ...questionProps(state.fields[fieldIndex], fieldIndex)
           })
@@ -104,7 +104,7 @@ export function usePostHogTracking() {
     }
   }, [state.values])
 
-  // heyform_submitted
+  // form_submitted
   useEffect(() => {
     if (state.isSubmitted) {
       submittedRef.current = true
@@ -112,7 +112,7 @@ export function usePostHogTracking() {
         ? Math.round((Date.now() - startedAtRef.current) / 1000)
         : undefined
 
-      getPostHog()?.capture('heyform_submitted', {
+      getPostHog()?.capture('form_submitted', {
         ...commonProps(),
         completion_time_seconds: duration,
         answers_count: Object.keys(state.values).length
@@ -120,14 +120,14 @@ export function usePostHogTracking() {
     }
   }, [state.isSubmitted])
 
-  // heyform_abandoned — beforeunload + visibilitychange
+  // form_abandoned — beforeunload + visibilitychange
   // Only fire if user actually started (answered at least one question or clicked Start)
   useEffect(() => {
     const handleAbandon = () => {
       if (submittedRef.current) return
       if (!startedAtRef.current) return
 
-      getPostHog()?.capture('heyform_abandoned', {
+      getPostHog()?.capture('form_abandoned', {
         ...commonProps(),
         last_question_index: state.scrollIndex,
         last_question_id: state.fields[state.scrollIndex!]?.id,

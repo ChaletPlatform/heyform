@@ -1,6 +1,39 @@
 networks:
   heyform-net:
 
+x-heyform: &heyform-common
+  image: ghcr.io/chaletplatform/heyform:latest
+  restart: unless-stopped
+  depends_on:
+    - keydb
+  healthcheck:
+    test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9157/health/ready >/dev/null || exit 1"]
+    interval: 10s
+    timeout: 3s
+    retries: 5
+    start_period: 30s
+  env_file:
+    - .env
+  environment:
+    APP_HOMEPAGE_URL: ${APP_HOMEPAGE_URL}
+    SESSION_KEY: ${SESSION_KEY:?SESSION_KEY is required}
+    FORM_ENCRYPTION_KEY: ${FORM_ENCRYPTION_KEY:?FORM_ENCRYPTION_KEY is required}
+    MONGO_URI: ${MONGO_URI}
+    REDIS_HOST: keydb
+    REDIS_PORT: 6379
+    SMTP_FROM: ${SMTP_FROM}
+    SMTP_HOST: ${SMTP_HOST}
+    SMTP_PORT: ${SMTP_PORT}
+    SMTP_USER: ${SMTP_USER}
+    SMTP_PASSWORD: ${SMTP_PASSWORD}
+    SMTP_SECURE: ${SMTP_SECURE:-false}
+    SMTP_IGNORE_CERT: ${SMTP_IGNORE_CERT:-false}
+  volumes:
+    - ./assets:/app/packages/server/static/upload
+    - ./assets:/app/packages/server/uploads
+  networks:
+    - heyform-net
+
 services:
   caddy:
     image: caddy:2-alpine
@@ -14,41 +47,16 @@ services:
       - caddy_config:/config
     networks:
       - heyform-net
-    depends_on:
-      - heyform
 
-  heyform:
-    image: ghcr.io/chaletplatform/heyform:latest
-    restart: unless-stopped
-    depends_on:
-      - keydb
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9157/health/ready >/dev/null || exit 1"]
-      interval: 15s
-      timeout: 3s
-      retries: 5
-      start_period: 30s
-    env_file:
-      - .env
-    environment:
-      APP_HOMEPAGE_URL: ${APP_HOMEPAGE_URL}
-      SESSION_KEY: ${SESSION_KEY:?SESSION_KEY is required}
-      FORM_ENCRYPTION_KEY: ${FORM_ENCRYPTION_KEY:?FORM_ENCRYPTION_KEY is required}
-      MONGO_URI: ${MONGO_URI}
-      REDIS_HOST: keydb
-      REDIS_PORT: 6379
-      SMTP_FROM: ${SMTP_FROM}
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_USER: ${SMTP_USER}
-      SMTP_PASSWORD: ${SMTP_PASSWORD}
-      SMTP_SECURE: ${SMTP_SECURE:-false}
-      SMTP_IGNORE_CERT: ${SMTP_IGNORE_CERT:-false}
-    volumes:
-      - ./assets:/app/packages/server/static/upload
-      - ./assets:/app/packages/server/uploads
-    networks:
-      - heyform-net
+  heyform-blue:
+    <<: *heyform-common
+    container_name: heyform-blue
+
+  heyform-green:
+    <<: *heyform-common
+    container_name: heyform-green
+    profiles:
+      - green
 
   keydb:
     image: eqalpha/keydb:latest

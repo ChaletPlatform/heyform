@@ -1,0 +1,23 @@
+forms.getchalet.com {
+    handle /chaletforms-ph/static/* {
+        uri strip_prefix /chaletforms-ph
+        reverse_proxy https://us-assets.i.posthog.com {
+            header_up Host us-assets.i.posthog.com
+        }
+    }
+
+    handle /chaletforms-ph/* {
+        uri strip_prefix /chaletforms-ph
+        reverse_proxy https://us.i.posthog.com {
+            header_up Host us.i.posthog.com
+        }
+    }
+
+    handle {
+        reverse_proxy heyform-blue:9157 heyform-green:9157 {
+            health_uri /health/ready
+            health_interval 5s
+            health_timeout 3s
+        }
+    }
+}

@@ -55,37 +55,55 @@ open http://localhost:8025        # Mailpit (catches all emails)
 
 ## CI/CD
 
-**Workflow:** `.github/workflows/ghcr-publish.yml`
+**Workflow:** `.github/workflows/build-and-deploy.yml`
 
-- **Triggers on:** push to `chalet/trustedform`
-- **Builds:** `linux/amd64` Docker image
-- **Pushes to:** `ghcr.io/chaletplatform/heyform:latest` and `ghcr.io/chaletplatform/heyform:<commit-sha>`
-- **Auth:** uses built-in `GITHUB_TOKEN` — no secrets to configure
+- **Triggers on:** push to `chalet/trustedform` (when `packages/**`, `Dockerfile`, `Caddyfile`, `docker-compose.prod.yml`, or `deploy/**` change), or manual dispatch
+- **Build job:** builds `linux/amd64` Docker image, pushes to `ghcr.io/chaletplatform/heyform:latest` and `:<commit-sha>`
+- **Deploy job:** SSHs into the EC2 instance, syncs config files via SCP, and runs the blue-green deploy script
 
-The GHCR package is **private**. The EC2 instance is authenticated with a GitHub PAT stored in `/home/ec2-user/.docker/config.json`.
+### Zero-downtime blue-green deployment
+
+The deploy uses two service slots (`heyform-blue` and `heyform-green`). Caddy health-checks both upstreams and routes only to the healthy one.
+
+1. Deploy script detects which slot is active
+2. Pulls new image, starts the **other** slot
+3. Waits for health check to pass (max 120s)
+4. Caddy automatically routes traffic to the new healthy container
+5. Stops the old slot
+6. If the new slot fails health check, it rolls back automatically
+
+**Key files:**
+- `deploy/deploy.sh` — the blue-green swap script
+- `Caddyfile` — Caddy config with dual upstreams and health checks
+- `docker-compose.prod.yml` — blue/green service definitions (YAML anchor to avoid duplication)
+
+### GitHub Actions secrets required
+
+| Secret | Description |
+|--------|-------------|
+| `DEPLOY_HOST` | EC2 instance IP (`34.214.175.119`) |
+| `DEPLOY_USER` | SSH user (`ec2-user`) |
+| `DEPLOY_SSH_KEY` | Private SSH key (contents of `heyform.pem`) |
+| `GHCR_USER` | GitHub username for pulling images on the server |
+| `GHCR_TOKEN` | GitHub PAT with `read:packages` scope |
+
+The GHCR package is **private**. The deploy job authenticates via the `GHCR_USER`/`GHCR_TOKEN` secrets.
 
 ---
 
 ## Production Deployment
 
-### First-time setup (already done)
+### Automatic (recommended)
+
+Push to `chalet/trustedform` — CI builds the image and deploys automatically with zero downtime.
+
+You can also trigger a deploy manually from the GitHub Actions tab → "Build, Push, and Deploy" → "Run workflow".
+
+### Manual (if needed)
 
 ```bash
-# SSH into the instance
-ssh heyform-instance
-
-# Files are at /opt/heyform/
-ls /opt/heyform/
-# docker-compose.yml  Caddyfile  .env  assets/
+ssh heyform-instance "cd /opt/heyform && docker pull ghcr.io/chaletplatform/heyform:latest && bash deploy/deploy.sh latest"
 ```
-
-### Deploying a new image
-
-```bash
-ssh heyform-instance "cd /opt/heyform && docker compose pull && docker compose up -d"
-```
-
-Or let CI handle it — every push to `chalet/trustedform` builds a new image tagged `:latest`.
 
 ### Updating config / .env
 
@@ -175,7 +193,11 @@ forms.getchalet.com {
     }
 
     handle {
-        reverse_proxy heyform:9157
+        reverse_proxy heyform-blue:9157 heyform-green:9157 {
+            health_uri /health/ready
+            health_interval 5s
+            health_timeout 3s
+        }
     }
 }
 ```
@@ -288,24 +310,20 @@ git push
 
 Don't include lockfile regenerations in commits unless you've tested the build locally first.
 
-### Force-recreate the running container
+### Force-redeploy
 
 ```bash
-cd /opt/heyform && \
-sudo docker compose pull heyform && \
-sudo docker compose up -d --force-recreate heyform
+ssh heyform-instance "cd /opt/heyform && docker pull ghcr.io/chaletplatform/heyform:latest && bash deploy/deploy.sh latest"
 ```
 
-`--force-recreate` matters — without it compose may keep the running container even after a fresh image is pulled.
+The deploy script handles the blue-green swap automatically.
 
 ### Roll back to a previous image
 
 Every CI build pushes both `:latest` and `:<short-sha>` tags to GHCR. To roll back:
 
 ```bash
-sudo docker pull ghcr.io/chaletplatform/heyform:<old-sha>
-# Edit /opt/heyform/docker-compose.yml — change image tag from :latest to :<old-sha>
-sudo docker compose up -d --force-recreate heyform
+ssh heyform-instance "cd /opt/heyform && docker pull ghcr.io/chaletplatform/heyform:<old-sha> && bash deploy/deploy.sh <old-sha>"
 ```
 
 Form data lives in MongoDB Atlas — container rollbacks/restarts never touch it.
@@ -313,9 +331,14 @@ Form data lives in MongoDB Atlas — container rollbacks/restarts never touch it
 ### Watch what the container actually has
 
 ```bash
-sudo docker exec heyform-heyform-1 sh -c 'echo $POSTHOG_KEY'     # env vars
-sudo docker compose logs --tail=80 heyform                        # logs
-sudo docker compose ps                                            # status
+# Check which slot is active
+ssh heyform-instance "docker ps --format '{{.Names}}  {{.Status}}'"
+
+# Check env vars in the active container
+ssh heyform-instance "docker exec heyform-blue sh -c 'echo \$POSTHOG_KEY'"
+
+# Logs
+ssh heyform-instance "cd /opt/heyform && docker compose logs --tail=80 heyform-blue"
 ```
 
 ---

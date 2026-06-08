@@ -67,18 +67,23 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@v4
 
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
       - name: Sync config files to prod
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: "docker-compose.prod.yml,Caddyfile,deploy/deploy.sh"
-          target: /opt/heyform
-          overwrite: true
+        run: |
+          scp -i ~/.ssh/deploy_key \
+            docker-compose.prod.yml \
+            Caddyfile \
+            deploy/deploy.sh \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/heyform/
 
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
@@ -91,7 +96,9 @@ jobs:
             # Rename compose file to match what's on the server
             mv -f docker-compose.prod.yml docker-compose.yml 2>/dev/null || true
 
-            # Make deploy script executable
+            # Ensure deploy dir exists and script is executable
+            mkdir -p deploy
+            mv -f deploy.sh deploy/deploy.sh 2>/dev/null || true
             chmod +x deploy/deploy.sh
 
             # Reload Caddy config (picks up new Caddyfile)

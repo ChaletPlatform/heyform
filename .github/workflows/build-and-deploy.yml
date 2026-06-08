@@ -1,6 +1,7 @@
 name: Build, Push, and Deploy
 
 on:
+  workflow_dispatch:
   push:
     branches: [chalet/trustedform]
     paths:

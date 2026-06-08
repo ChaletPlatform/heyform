@@ -95,17 +95,17 @@ export class FormAnalyticResolver {
       })
     ])
 
-    const prevRate = getRate(prev.avgTotalVisits, prev.avgSubmissionCount)
-    const nextRate = getRate(next.avgTotalVisits, next.avgSubmissionCount)
+    const prevRate = getRate(prev.totalVisits, prev.submissionCount)
+    const nextRate = getRate(next.totalVisits, next.submissionCount)
 
     const result = {
-      totalVisits: getChanges(prev.avgTotalVisits, next.avgTotalVisits),
-      submissionCount: getChanges(prev.avgSubmissionCount, next.avgSubmissionCount),
+      totalVisits: getChanges(prev.totalVisits, next.totalVisits),
+      submissionCount: getChanges(prev.submissionCount, next.submissionCount),
       completeRate: {
         value: nextRate,
         change: prevRate ? nextRate - prevRate : undefined
       },
-      averageTime: getChanges(prev.avgAverageTime, next.avgAverageTime, false)
+      averageTime: getChanges(prev.averageTime, next.averageTime, false)
     }
 
     await this.redisService.set({

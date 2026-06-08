@@ -413,10 +413,10 @@ export class SubmissionService {
       {
         $group: {
           _id: null,
-          avgAverageTime: {
+          averageTime: {
             $avg: { $subtract: ['$endAt', '$startAt'] }
           },
-          avgSubmissionCount: { $sum: 1 }
+          submissionCount: { $sum: 1 }
         }
       }
     ])

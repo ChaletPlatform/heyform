@@ -14,9 +14,9 @@ interface FormAnalyticOptions {
 }
 
 interface FormAnalyticResult {
-  avgTotalVisits: number
-  avgSubmissionCount: number
-  avgAverageTime: number
+  totalVisits: number
+  submissionCount: number
+  averageTime: number
 }
 
 @Injectable()
@@ -28,8 +28,8 @@ export class FormAnalyticService {
   ) {}
 
   public async summary({ formId, startAt, endAt, isNext }: FormAnalyticOptions) {
-    const [avgTotalVisits, result] = await Promise.all([
-      this.getAverageTotalVisits(formId, startAt, endAt),
+    const [totalVisits, result] = await Promise.all([
+      this.getTotalVisits(formId, startAt, endAt),
       this.submissionService.analytic(
         formId,
         Math.floor(startAt.getTime() / 1000),
@@ -38,17 +38,17 @@ export class FormAnalyticService {
     ])
 
     const analytic = {
-      avgTotalVisits: 0,
-      avgSubmissionCount: 0,
-      avgAverageTime: 0
+      totalVisits: 0,
+      submissionCount: 0,
+      averageTime: 0
     }
 
-    if (avgTotalVisits > 0) {
-      analytic.avgTotalVisits = avgTotalVisits
+    if (totalVisits > 0) {
+      analytic.totalVisits = totalVisits
 
       if (helper.isValidArray(result)) {
-        analytic.avgSubmissionCount = result[0].avgSubmissionCount
-        analytic.avgAverageTime = result[0].avgAverageTime
+        analytic.submissionCount = result[0].submissionCount
+        analytic.averageTime = result[0].averageTime
       }
 
       return analytic
@@ -59,7 +59,7 @@ export class FormAnalyticService {
     }
   }
 
-  public async getAverageTotalVisits(formId: string, startAt: Date, endAt: Date): Promise<number> {
+  public async getTotalVisits(formId: string, startAt: Date, endAt: Date): Promise<number> {
     const result = await this.formAnalyticModel.aggregate([
       {
         $match: {
@@ -73,12 +73,12 @@ export class FormAnalyticService {
       {
         $group: {
           _id: null,
-          avgTotalVisits: { $avg: '$totalVisits' }
+          totalVisits: { $sum: '$totalVisits' }
         }
       }
     ])
 
-    return result[0]?.avgTotalVisits || 0
+    return result[0]?.totalVisits || 0
   }
 
   public async updateTotalVisits(formId: string): Promise<void> {

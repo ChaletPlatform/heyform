@@ -156,6 +156,32 @@ export const Renderer: FC<RendererProps> = ({ form, query, locale, contactId }) 
             }
           }
 
+          // Log diagnostics when TrustedForm cert URL is missing
+          if (field.name === 'xxTrustedFormCertUrl' && !helper.isValid(value)) {
+            const tfScript = document.querySelector<HTMLScriptElement>('script[src*="trustedform"]')
+            const tfInput = document.querySelector<HTMLInputElement>('input[name="xxTrustedFormCertUrl"]')
+
+            const diagnostics: Record<string, any> = {
+              form_id: form.id,
+              tf_script_present: !!tfScript,
+              tf_input_present: !!tfInput,
+              tf_input_value: tfInput?.value || null,
+              query_param_value: query[field.name] || null,
+              user_agent: navigator.userAgent
+            }
+
+            // Check if the SDK script was blocked from loading
+            if (tfScript) {
+              diagnostics.tf_script_loaded = tfScript.dataset?.loaded === 'true' || !!tfScript.src
+            }
+
+            console.warn('[TrustedForm] cert URL missing at submit', diagnostics)
+
+            if (typeof window.posthog?.capture === 'function') {
+              window.posthog.capture('trustedform_cert_missing', diagnostics)
+            }
+          }
+
           if (helper.isValid(value)) {
             return {
               ...field,

@@ -28,11 +28,10 @@ export class PermissionGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const ctx = GqlExecutionContext.create(context)
-    let { req } = ctx.getContext()
-    let args = ctx.getArgs()
+    let req: any
+    let args: any
 
-    if (helper.isEmpty(req)) {
+    if (context.getType() === 'http') {
       req = context.switchToHttp().getRequest()
       args = {
         input: {
@@ -41,6 +40,10 @@ export class PermissionGuard implements CanActivate {
           formId: requestParser(req, ['formId', 'form_id'])
         }
       }
+    } else {
+      const ctx = GqlExecutionContext.create(context)
+      ;({ req } = ctx.getContext())
+      args = ctx.getArgs()
     }
 
     const user = req.user

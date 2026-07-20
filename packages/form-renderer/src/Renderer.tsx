@@ -71,6 +71,28 @@ function fieldMatches(field: FormField, matcher: FieldMatcher): boolean {
   return false
 }
 
+// When the budget answer is one of these choice IDs (all ≥ $600k), skip the
+// "Pick what fits you best" question and auto-fill it as "I'm Buying".
+const HIGH_BUDGET_CHOICE_IDS = new Set([
+  'rY6jhfyssDP0pw8ahd7Lv', // $600,000 - $800,000
+  'JdLWCcveogntS7IO6n2EH', // $800,000 - $1,200,000
+  'UIDMNcevrnM4vj7ZX2fWf', // $1,200,000 - $2,000,000
+  'eXExocRQixRVL8fuCFEpZ'  // $2,000,000 - $5,000,000
+])
+const AIRBNB_REALTOR_FORM_ID = 'wWLgPuRJ'
+const BUDGET_FIELD_ID = 'lJHT384s4UcK'
+const FITS_YOU_BEST_FIELD_ID = 'K9TdKPBxSQSj'
+const IM_BUYING_CHOICE_ID = '37UouhX4aFkE'
+
+export function isHighBudget(values: Record<string, any>): boolean {
+  const budget = values[BUDGET_FIELD_ID]
+  if (!budget) return false
+  const choiceId = typeof budget === 'object' ? budget.value?.[0] ?? budget.value : budget
+  return HIGH_BUDGET_CHOICE_IDS.has(choiceId)
+}
+
+export { AIRBNB_REALTOR_FORM_ID, FITS_YOU_BEST_FIELD_ID, IM_BUYING_CHOICE_ID }
+
 // Sentinel value our upstream sends when the user didn't specify a market —
 // treat it as absent so the question still renders.
 const HIDDEN_FIELD_UNSET_SENTINELS = new Set(['not specified'])
@@ -130,6 +152,12 @@ function initStore(
     allFields = allFields
       .filter(f => !skipIds.has(f.id))
       .map(f => (f.parent && skipIds.has(f.parent.id) ? { ...f, parent: undefined } : f))
+  }
+
+  // Budget ≥ $600k → skip "Pick what fits you best", auto-fill "I'm Buying"
+  if (form.id === AIRBNB_REALTOR_FORM_ID && (isHighBudget(seededValues) || isHighBudget(getStorage(form.id, autoSave)))) {
+    allFields = allFields.filter(f => f.id !== FITS_YOU_BEST_FIELD_ID)
+    seededValues[FITS_YOU_BEST_FIELD_ID] = { value: [IM_BUYING_CHOICE_ID] }
   }
 
   const jumpFieldIds = (form.logics || [])

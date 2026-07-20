@@ -21,6 +21,7 @@ import {
 } from './utils'
 import { applyLogicToFields } from '@heyform-inc/answer-utils'
 import { helper } from '@heyform-inc/utils'
+import { isHighBudget, AIRBNB_REALTOR_FORM_ID, FITS_YOU_BEST_FIELD_ID, IM_BUYING_CHOICE_ID } from './Renderer'
 
 import type { AnyMap, IFormField } from './typings'
 
@@ -124,6 +125,14 @@ const actions: any = {
       ...values
     }
 
+    // Budget ≥ $600k → skip "Pick what fits you best", auto-fill "I'm Buying"
+    const highBudget = state.formId === AIRBNB_REALTOR_FORM_ID && isHighBudget(newValues)
+    let effectiveAllFields = state.allFields
+    if (highBudget) {
+      newValues[FITS_YOU_BEST_FIELD_ID] = { value: [IM_BUYING_CHOICE_ID] }
+      effectiveAllFields = state.allFields.filter(f => f.id !== FITS_YOU_BEST_FIELD_ID)
+    }
+
     if (state.autoSave) {
       const cache: AnyMap = {}
 
@@ -139,7 +148,7 @@ const actions: any = {
     }
 
     const { fields, variables } = applyLogicToFields(
-      [...state.allFields, ...state.thankYouFields].filter(Boolean) as FormField[],
+      [...effectiveAllFields, ...state.thankYouFields].filter(Boolean) as FormField[],
       state.logics,
       state.parameters,
       newValues

@@ -79,7 +79,7 @@ const HIGH_BUDGET_CHOICE_IDS = new Set([
   'UIDMNcevrnM4vj7ZX2fWf', // $1,200,000 - $2,000,000
   'eXExocRQixRVL8fuCFEpZ'  // $2,000,000 - $5,000,000
 ])
-const AIRBNB_REALTOR_FORM_ID = 'wWLgPuRJ'
+const AIRBNB_REALTOR_FORM_IDS = new Set(['wWLgPuRJ', 'gZ0RU2wj'])
 const BUDGET_FIELD_ID = 'lJHT384s4UcK'
 const FITS_YOU_BEST_FIELD_ID = 'K9TdKPBxSQSj'
 const IM_BUYING_CHOICE_ID = '37UouhX4aFkE'
@@ -91,7 +91,7 @@ export function isHighBudget(values: Record<string, any>): boolean {
   return HIGH_BUDGET_CHOICE_IDS.has(choiceId)
 }
 
-export { AIRBNB_REALTOR_FORM_ID, FITS_YOU_BEST_FIELD_ID, IM_BUYING_CHOICE_ID }
+export { AIRBNB_REALTOR_FORM_IDS, FITS_YOU_BEST_FIELD_ID, IM_BUYING_CHOICE_ID }
 
 // Sentinel value our upstream sends when the user didn't specify a market —
 // treat it as absent so the question still renders.
@@ -155,7 +155,7 @@ function initStore(
   }
 
   // Budget ≥ $600k → skip "Pick what fits you best", auto-fill "I'm Buying"
-  if (form.id === AIRBNB_REALTOR_FORM_ID && (isHighBudget(seededValues) || isHighBudget(getStorage(form.id, autoSave)))) {
+  if (AIRBNB_REALTOR_FORM_IDS.has(form.id) && (isHighBudget(seededValues) || isHighBudget(getStorage(form.id, autoSave)))) {
     allFields = allFields.filter(f => f.id !== FITS_YOU_BEST_FIELD_ID)
     seededValues[FITS_YOU_BEST_FIELD_ID] = { value: [IM_BUYING_CHOICE_ID] }
   }

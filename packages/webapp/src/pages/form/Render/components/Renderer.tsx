@@ -22,6 +22,7 @@ import { helper } from '@heyform-inc/utils'
 import { GOOGLE_RECAPTCHA_KEY } from '@/consts/env'
 
 import { PasswordCheck } from './PasswordCheck'
+import { OtpVerification } from './OtpVerification'
 
 interface RendererProps {
   form: FormModel
@@ -32,10 +33,48 @@ interface RendererProps {
 
 let captchaRef: Any = null
 
+// Chalet: a form opts into phone verification by declaring a hidden field with
+// this name. The OTP result is written back into it so it flows to the webhook.
+const OTP_HIDDEN_FIELD_NAME = 'phone_verified'
+
+// Find the first PHONE_NUMBER field, including group children (lead-capture
+// group). `values` keys group children by their own id, so this id resolves the
+// entered phone number.
+function findPhoneField(fields?: Any[]): Any {
+  for (const f of fields || []) {
+    if (f.kind === FieldKindEnum.PHONE_NUMBER) return f
+    if (f.kind === FieldKindEnum.GROUP) {
+      const child = (f.properties?.fields || []).find(
+        (c: Any) => c.kind === FieldKindEnum.PHONE_NUMBER
+      )
+      if (child) return child
+    }
+  }
+  return undefined
+}
+
 export const Renderer: FC<RendererProps> = ({ form, query, locale, contactId }) => {
   const openTokenRef = useRef<string>('')
   const passwordTokenRef = useRef<string>('')
   const [isPasswordChecked, setIsPasswordChecked] = useState(false)
+  const [otpPhone, setOtpPhone] = useState<string | null>(null)
+  const otpResolverRef = useRef<((verified: boolean) => void) | null>(null)
+
+  // Show the OTP overlay and resolve once the user finishes (verified, failed,
+  // or skipped). Always resolves — it can never block the submission.
+  function runOtp(phone: string): Promise<boolean> {
+    return new Promise(resolve => {
+      otpResolverRef.current = resolve
+      setOtpPhone(phone)
+    })
+  }
+
+  function finishOtp(verified: boolean) {
+    setOtpPhone(null)
+    const resolve = otpResolverRef.current
+    otpResolverRef.current = null
+    resolve?.(verified)
+  }
 
   function loadExternalScript(id: string, src: string): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -191,6 +230,25 @@ export const Renderer: FC<RendererProps> = ({ form, query, locale, contactId }) 
         })
         .filter(Boolean) as HiddenFieldAnswer[]
 
+      // Chalet: phone verification gate. When the form declares a
+      // `phone_verified` hidden field, run OTP before finalizing the submission
+      // and record the result into that hidden field so it rides out with the
+      // submission (and into the webhook payload). The submission proceeds
+      // regardless of the outcome — success, failure, and skip all continue.
+      const otpField = (form.hiddenFields || []).find(f => f.name === OTP_HIDDEN_FIELD_NAME)
+      if (otpField) {
+        const phoneField = findPhoneField(form.fields)
+        const phone = phoneField ? values[phoneField.id] : undefined
+        const verified =
+          phone && typeof phone === 'string' ? await runOtp(phone) : false
+
+        const existingIndex = hiddenFields.findIndex(
+          h => h.name === OTP_HIDDEN_FIELD_NAME || h.id === (otpField as Any).id
+        )
+        if (existingIndex >= 0) hiddenFields.splice(existingIndex, 1)
+        hiddenFields.push({ ...otpField, value: verified ? 'true' : 'false' } as HiddenFieldAnswer)
+      }
+
       const { clientSecret } = await EndpointService.completeSubmission({
         formId: form.id,
         contactId,
@@ -276,6 +334,11 @@ export const Renderer: FC<RendererProps> = ({ form, query, locale, contactId }) 
       {/* Custom css */}
       {helper.isValid(form.themeSettings?.theme?.customCSS) && (
         <style dangerouslySetInnerHTML={{ __html: form.themeSettings!.theme!.customCSS! }} />
+      )}
+
+      {/* Chalet: phone verification overlay (shown mid-submit when required) */}
+      {otpPhone && (
+        <OtpVerification phone={otpPhone} formId={form.id} onDone={finishOtp} />
       )}
     </>
   )

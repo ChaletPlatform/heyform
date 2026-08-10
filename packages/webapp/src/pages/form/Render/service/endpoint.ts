@@ -20,8 +20,13 @@ const UPLOAD_FILE_TOKEN_GQL = `mutation uploadFileToken($input: UploadFormFileIn
 
 const COMPLETE_SUBMISSION_GQL = `mutation completeSubmission($input: CompleteSubmissionInput!) {
 	completeSubmission(input: $input) {
+	  submissionId
 	  clientSecret
 	}
+}`
+
+const UPDATE_SUBMISSION_HIDDEN_FIELD_GQL = `mutation updateSubmissionHiddenField($input: UpdateSubmissionHiddenFieldInput!) {
+	updateSubmissionHiddenField(input: $input)
 }`
 
 export class EndpointService {
@@ -82,7 +87,7 @@ export class EndpointService {
     // Google reCAPTCHA token
     recaptchaToken?: string
     partialSubmission?: boolean
-  }): Promise<{ clientSecret?: string }> {
+  }): Promise<{ submissionId?: string; clientSecret?: string }> {
     const result = await axios({
       query: COMPLETE_SUBMISSION_GQL,
       variables: {
@@ -90,5 +95,20 @@ export class EndpointService {
       }
     })
     return result.completeSubmission
+  }
+
+  static async updateSubmissionHiddenField(input: {
+    formId: string
+    submissionId: string
+    fieldName: string
+    value: string
+  }): Promise<boolean> {
+    const result = await axios({
+      query: UPDATE_SUBMISSION_HIDDEN_FIELD_GQL,
+      variables: {
+        input
+      }
+    })
+    return result.updateSubmissionHiddenField
   }
 }

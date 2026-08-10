@@ -401,6 +401,19 @@ export class SubmissionService {
     return result.acknowledged
   }
 
+  async updateHiddenField(submissionId: string, fieldName: string, value: string): Promise<boolean> {
+    const result = await this.submissionModel.updateOne(
+      {
+        _id: submissionId,
+        'hiddenFields.name': fieldName
+      },
+      {
+        $set: { 'hiddenFields.$.value': value }
+      }
+    )
+    return result.matchedCount > 0
+  }
+
   async analytic(formId: string, startAt: number, endAt: number) {
     return this.submissionModel.aggregate([
       {

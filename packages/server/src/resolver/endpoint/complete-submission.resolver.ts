@@ -160,7 +160,7 @@ export class CompleteSubmissionResolver {
 
     // Payment
     const answer = answers.find(a => a.kind === FieldKindEnum.PAYMENT)
-    const result: CompleteSubmissionType = {}
+    const result: CompleteSubmissionType = { submissionId }
 
     if (helper.isValid(answer) && helper.isValid(form.stripeAccount)) {
       result.clientSecret = await this.paymentService.createPaymentIntent({
@@ -185,8 +185,14 @@ export class CompleteSubmissionResolver {
     // Form report Queue
     this.formReportService.addQueue(form.id)
 
+    // Delay integrations for OTP forms so the webhook fires with the final
+    // phone_verified value. The updateSubmissionHiddenField endpoint cancels
+    // the delayed jobs and fires immediately when the user verifies.
+    const hasOtpField = input.hiddenFields?.some(f => f.name === 'phone_verified')
+    const OTP_WEBHOOK_DELAY_MS = 5 * 60 * 1000
+
     // Integration Queue
-    this.integrationService.addQueue(form, submissionId)
+    this.integrationService.addQueue(form, submissionId, hasOtpField ? OTP_WEBHOOK_DELAY_MS : undefined)
 
     return result
   }

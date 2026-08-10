@@ -78,7 +78,25 @@ export class CompleteSubmissionInput {
 @ObjectType()
 export class CompleteSubmissionType {
   @Field({ nullable: true })
+  submissionId?: string
+
+  @Field({ nullable: true })
   clientSecret?: string
+}
+
+@InputType()
+export class UpdateSubmissionHiddenFieldInput {
+  @Field()
+  formId: string
+
+  @Field()
+  submissionId: string
+
+  @Field()
+  fieldName: string
+
+  @Field()
+  value: string
 }
 
 @ObjectType()

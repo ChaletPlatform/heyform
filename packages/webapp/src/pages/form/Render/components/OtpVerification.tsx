@@ -1,23 +1,9 @@
 import { CSSProperties, ChangeEvent, FC, useCallback, useEffect, useRef, useState } from 'react'
 
-/**
- * Chalet: in-form phone verification (OTP) overlay.
- *
- * Rendered by Renderer.tsx as the final gate BEFORE a submission is finalized,
- * when the form declares a `phone_verified` hidden field. The verification
- * result is written into that hidden field so it rides out with the submission
- * to the webhook (native `verified: true/false` in the payload).
- *
- * The submission always proceeds — success, failure, timeout, or skip all
- * resolve via `onDone(verified)`; this screen can never block the submit.
- *
- * Talks directly to the customers-service OTP lambda. In mock SMS mode the send
- * response echoes the code, which we surface as a dev hint.
- */
-
 const OTP_API_BASE = 'https://cbehz6zbjl.execute-api.us-west-2.amazonaws.com'
 const OTP_LENGTH = 6
 const RESEND_COOLDOWN = 30
+const OTP_TIMEOUT_MS = 5 * 60 * 1000
 
 type OtpStatus = 'sending' | 'input' | 'verifying' | 'success' | 'error'
 
@@ -36,10 +22,16 @@ export const OtpVerification: FC<OtpVerificationProps> = ({ phone, formId, onDon
   const [code, setCode] = useState('')
   const [status, setStatus] = useState<OtpStatus>('sending')
   const [error, setError] = useState('')
-
   const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null)
   const [resendTimer, setResendTimer] = useState(RESEND_COOLDOWN)
   const verifyingRef = useRef(false)
+  const doneRef = useRef(false)
+
+  const finish = useCallback((verified: boolean) => {
+    if (doneRef.current) return
+    doneRef.current = true
+    onDone(verified)
+  }, [onDone])
 
   const sendOtp = useCallback(async () => {
     setStatus('sending')
@@ -54,9 +46,8 @@ export const OtpVerification: FC<OtpVerificationProps> = ({ phone, formId, onDon
       })
       const data = await res.json()
 
-      // Lambda doesn't consider this form OTP-eligible — don't trap the user.
       if (data.required === false) {
-        onDone(false)
+        finish(false)
         return
       }
 
@@ -79,7 +70,7 @@ export const OtpVerification: FC<OtpVerificationProps> = ({ phone, formId, onDon
       setStatus('error')
       setError('Network error. Please try again.')
     }
-  }, [phone, formId, onDone])
+  }, [phone, formId, finish])
 
   const verifyOtp = useCallback(
     async (value: string) => {
@@ -97,7 +88,7 @@ export const OtpVerification: FC<OtpVerificationProps> = ({ phone, formId, onDon
 
         if (data.verified) {
           setStatus('success')
-          setTimeout(() => onDone(true), 1000)
+          setTimeout(() => finish(true), 1000)
           return
         }
 
@@ -114,7 +105,7 @@ export const OtpVerification: FC<OtpVerificationProps> = ({ phone, formId, onDon
         verifyingRef.current = false
       }
     },
-    [phone, onDone]
+    [phone, finish]
   )
 
   // Send the code as soon as the overlay mounts.
@@ -122,6 +113,12 @@ export const OtpVerification: FC<OtpVerificationProps> = ({ phone, formId, onDon
     sendOtp()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Auto-dismiss after 5 minutes (matches OTP code expiry and server delay).
+  useEffect(() => {
+    const t = setTimeout(() => finish(false), OTP_TIMEOUT_MS)
+    return () => clearTimeout(t)
+  }, [finish])
 
   // Resend countdown.
   useEffect(() => {
@@ -196,12 +193,6 @@ export const OtpVerification: FC<OtpVerificationProps> = ({ phone, formId, onDon
             </button>
           </>
         )}
-
-        {status !== 'success' && (
-          <button type="button" style={styles.skipBtn} onClick={() => onDone(false)}>
-            Skip for now
-          </button>
-        )}
       </div>
     </div>
   )
@@ -260,16 +251,6 @@ const styles: Record<string, CSSProperties> = {
     background: 'none',
     color: '#2563eb',
     fontSize: 13,
-    cursor: 'pointer'
-  },
-  skipBtn: {
-    display: 'block',
-    margin: '18px auto 0',
-    border: 'none',
-    background: 'none',
-    color: '#999',
-    fontSize: 12,
-    textDecoration: 'underline',
     cursor: 'pointer'
   }
 }

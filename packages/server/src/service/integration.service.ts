@@ -87,13 +87,15 @@ export class IntegrationService {
     return (result.deletedCount ?? 0) > 0
   }
 
-  public async addQueue(form: FormModel, submissionId: string): Promise<void> {
+  public async addQueue(form: FormModel, submissionId: string, delayMs?: number): Promise<void> {
+    const jobOpts = delayMs ? { delay: delayMs, jobId: `otp-deferred:${submissionId}` } : undefined
+
     // Email notification Queue
     if ((form.settings as any)?.enableEmailNotification) {
       this.submissionNotificationQueue.add({
         formId: form.id,
         submissionId
-      })
+      }, jobOpts)
     }
 
     const integrations = await this.integrationModel.find({
@@ -110,7 +112,19 @@ export class IntegrationService {
           formId: form.id,
           integrationId: integration.id,
           submissionId
-        })
+        }, jobOpts ? { delay: delayMs, jobId: `otp-deferred:${submissionId}:${integration.id}` } : undefined)
+      }
+    }
+  }
+
+  public async cancelDelayedJobs(submissionId: string): Promise<void> {
+    const queues = [this.integrationQueue, this.submissionNotificationQueue]
+    for (const queue of queues) {
+      const delayed = await queue.getDelayed()
+      for (const job of delayed) {
+        if (String(job.opts?.jobId || '').startsWith(`otp-deferred:${submissionId}`)) {
+          await job.remove()
+        }
       }
     }
   }

@@ -58,22 +58,19 @@ export const Renderer: FC<RendererProps> = ({ form, query, locale, contactId }) 
   const passwordTokenRef = useRef<string>('')
   const [isPasswordChecked, setIsPasswordChecked] = useState(false)
   const [otpPhone, setOtpPhone] = useState<string | null>(null)
-  const otpResolverRef = useRef<((verified: boolean) => void) | null>(null)
-
-  // Show the OTP overlay and resolve once the user finishes (verified, failed,
-  // or skipped). Always resolves — it can never block the submission.
-  function runOtp(phone: string): Promise<boolean> {
-    return new Promise(resolve => {
-      otpResolverRef.current = resolve
-      setOtpPhone(phone)
-    })
-  }
+  const [otpSubmissionId, setOtpSubmissionId] = useState<string | null>(null)
 
   function finishOtp(verified: boolean) {
+    if (verified && otpSubmissionId) {
+      EndpointService.updateSubmissionHiddenField({
+        formId: form.id,
+        submissionId: otpSubmissionId,
+        fieldName: OTP_HIDDEN_FIELD_NAME,
+        value: 'true'
+      }).catch(err => console.error('[OTP] Failed to update hidden field:', err))
+    }
     setOtpPhone(null)
-    const resolve = otpResolverRef.current
-    otpResolverRef.current = null
-    resolve?.(verified)
+    setOtpSubmissionId(null)
   }
 
   function loadExternalScript(id: string, src: string): Promise<void> {
@@ -230,26 +227,22 @@ export const Renderer: FC<RendererProps> = ({ form, query, locale, contactId }) 
         })
         .filter(Boolean) as HiddenFieldAnswer[]
 
-      // Chalet: phone verification gate. When the form declares a
-      // `phone_verified` hidden field, run OTP before finalizing the submission
-      // and record the result into that hidden field so it rides out with the
-      // submission (and into the webhook payload). The submission proceeds
-      // regardless of the outcome — success, failure, and skip all continue.
+      // Chalet: when the form declares a `phone_verified` hidden field, submit
+      // immediately with 'false' (so the data is safe), then show the OTP
+      // overlay. The server delays the webhook for 5 minutes. If the user
+      // verifies, finishOtp calls updateSubmissionHiddenField which flips the
+      // value to 'true', cancels the delayed job, and fires the webhook
+      // immediately. If they close the tab, the delayed job fires with 'false'.
       const otpField = (form.hiddenFields || []).find(f => f.name === OTP_HIDDEN_FIELD_NAME)
       if (otpField) {
-        const phoneField = findPhoneField(form.fields)
-        const phone = phoneField ? values[phoneField.id] : undefined
-        const verified =
-          phone && typeof phone === 'string' ? await runOtp(phone) : false
-
         const existingIndex = hiddenFields.findIndex(
           h => h.name === OTP_HIDDEN_FIELD_NAME || h.id === (otpField as Any).id
         )
         if (existingIndex >= 0) hiddenFields.splice(existingIndex, 1)
-        hiddenFields.push({ ...otpField, value: verified ? 'true' : 'false' } as HiddenFieldAnswer)
+        hiddenFields.push({ ...otpField, value: 'false' } as HiddenFieldAnswer)
       }
 
-      const { clientSecret } = await EndpointService.completeSubmission({
+      const { submissionId, clientSecret } = await EndpointService.completeSubmission({
         formId: form.id,
         contactId,
         answers: {
@@ -281,6 +274,17 @@ export const Renderer: FC<RendererProps> = ({ form, query, locale, contactId }) 
       }
 
       sendMessageToParent('FORM_SUBMITTED')
+
+      // Show OTP overlay after submission is saved. The form already shows the
+      // thank-you page at this point; the overlay sits on top of it.
+      if (otpField && submissionId) {
+        const phoneField = findPhoneField(form.fields)
+        const phone = phoneField ? values[phoneField.id] : undefined
+        if (phone && typeof phone === 'string') {
+          setOtpSubmissionId(submissionId)
+          setOtpPhone(phone)
+        }
+      }
     } catch (err: Any) {
       /**
        * Throw error to let Renderer knows that there was an error.
@@ -336,7 +340,7 @@ export const Renderer: FC<RendererProps> = ({ form, query, locale, contactId }) 
         <style dangerouslySetInnerHTML={{ __html: form.themeSettings!.theme!.customCSS! }} />
       )}
 
-      {/* Chalet: phone verification overlay (shown mid-submit when required) */}
+      {/* Chalet: phone verification overlay (shown after submission) */}
       {otpPhone && (
         <OtpVerification phone={otpPhone} formId={form.id} onDone={finishOtp} />
       )}

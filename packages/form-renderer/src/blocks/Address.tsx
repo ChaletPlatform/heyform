@@ -46,7 +46,7 @@ export const Address: FC<BlockProps> = ({ field, ...restProps }) => {
   return (
     <Block className="heyform-address" field={field} isScrollable={!isDropdownShown} {...restProps}>
       <Form
-        initialValues={initialValue(state.values[field.id])}
+        initialValues={initialValue(state.values[field.id]) || { country: 'US' }}
         field={field}
         getValues={getValues}
         onValuesChange={handleValuesChange}

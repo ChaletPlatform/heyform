@@ -68,9 +68,9 @@ export const Address: FC<BlockProps> = ({ field, ...restProps }) => {
             <Input placeholder={t('Address Line 2 (optional)')} />
           </FormField>
 
-          <div className="flex w-full flex-col items-start justify-items-stretch space-x-0 space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
+          <div className="flex items-center space-x-4">
             <FormField
-              className="w-full flex-1"
+              className="flex-1"
               name="city"
               rules={[
                 {
@@ -83,7 +83,7 @@ export const Address: FC<BlockProps> = ({ field, ...restProps }) => {
             </FormField>
 
             <FormField
-              className="w-full flex-1"
+              className="flex-1"
               name="state"
               rules={[
                 {
@@ -96,9 +96,9 @@ export const Address: FC<BlockProps> = ({ field, ...restProps }) => {
             </FormField>
           </div>
 
-          <div className="flex w-full flex-col items-start justify-items-stretch space-x-0 space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
+          <div className="flex items-center space-x-4">
             <FormField
-              className="w-full flex-1"
+              className="flex-1"
               name="zip"
               rules={[
                 {
@@ -111,7 +111,7 @@ export const Address: FC<BlockProps> = ({ field, ...restProps }) => {
             </FormField>
 
             <FormField
-              className="w-full flex-1"
+              className="flex-1"
               name="country"
               rules={[
                 {

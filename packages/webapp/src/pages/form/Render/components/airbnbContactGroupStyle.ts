@@ -19,10 +19,19 @@ const ARROW_ICON = svgDataUri(
 const SHIELD_ICON = svgDataUri(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#5c47b1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M9 12l2 2 4-4"></path></svg>'
 )
+const CHECK_ICON = svgDataUri(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+)
 
 const SCOPE = `[id$="-${AIRBNB_CONTACT_GROUP_FIELD_ID}"]`
 
 export const AIRBNB_CONTACT_GROUP_CSS = `
+/* ── Cap line length: the block inherits --heyform-form-max-width (1120px by
+   default) which makes a 3-field form absurdly wide. ── */
+${SCOPE} {
+  --heyform-form-max-width: 520px;
+}
+
 /* ── No card wrapper ── */
 ${SCOPE} .heyform-block-wrapper {
   background: none !important;
@@ -70,8 +79,11 @@ ${SCOPE} .heyform-group-child-title {
   font-size: 0.9rem;
   font-weight: 600;
 }
+/* All three fields are required, so the per-field asterisk is redundant —
+   and it's the only other red on the page besides real error states, which
+   makes red ambiguous between "required" and "invalid". */
 ${SCOPE} .heyform-group-child-required {
-  color: #dc2626 !important;
+  display: none !important;
 }
 
 /* Icon pseudo-elements */
@@ -176,7 +188,7 @@ ${SCOPE} .heyform-group-child-statement {
   margin-top: 2px;
 }
 ${SCOPE} .heyform-group-child-statement::before {
-  content: 'Your information is secure \\2014  We only use your information to match you with vetted short-term rental real estate agents. We will never share your information with third parties for marketing purposes.';
+  content: 'Your information is secure \\2014  We only use your information to match you with vetted short-term rental real estate agents and lenders. We will never share your information with third parties for marketing purposes.';
   display: block;
   width: 100%;
   padding: 12px 16px 12px 46px;
@@ -244,7 +256,7 @@ ${SCOPE} .heyform-submit-container {
 }
 /* ── Trust marks below submit ── */
 ${SCOPE} .heyform-group-submit::after {
-  content: '\\2713\\a0 Free, always \\a0\\a0\\a0\\a0\\a0 \\2713\\a0 No obligation \\a0\\a0\\a0\\a0\\a0 \\2713\\a0 Intro in 24 hours';
+  content: url("${CHECK_ICON}") '\\a0 Free, always \\a0\\a0\\a0\\a0\\a0 ' url("${CHECK_ICON}") '\\a0 No obligation \\a0\\a0\\a0\\a0\\a0 ' url("${CHECK_ICON}") '\\a0 Intro in 24 hours';
   display: block;
   text-align: center;
   margin-top: 14px;

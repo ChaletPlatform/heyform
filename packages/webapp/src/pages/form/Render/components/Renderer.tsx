@@ -21,8 +21,9 @@ import { helper } from '@heyform-inc/utils'
 
 import { GOOGLE_RECAPTCHA_KEY } from '@/consts/env'
 
-import { PasswordCheck } from './PasswordCheck'
 import { OtpVerification } from './OtpVerification'
+import { PasswordCheck } from './PasswordCheck'
+import { AIRBNB_CONTACT_GROUP_CSS } from './airbnbContactGroupStyle'
 
 interface RendererProps {
   form: FormModel
@@ -195,7 +196,9 @@ export const Renderer: FC<RendererProps> = ({ form, query, locale, contactId }) 
           // Log diagnostics when TrustedForm cert URL is missing
           if (field.name === 'xxTrustedFormCertUrl' && !helper.isValid(value)) {
             const tfScript = document.querySelector<HTMLScriptElement>('script[src*="trustedform"]')
-            const tfInput = document.querySelector<HTMLInputElement>('input[name="xxTrustedFormCertUrl"]')
+            const tfInput = document.querySelector<HTMLInputElement>(
+              'input[name="xxTrustedFormCertUrl"]'
+            )
 
             const diagnostics: Record<string, any> = {
               form_id: form.id,
@@ -340,10 +343,13 @@ export const Renderer: FC<RendererProps> = ({ form, query, locale, contactId }) 
         <style dangerouslySetInnerHTML={{ __html: form.themeSettings!.theme!.customCSS! }} />
       )}
 
-      {/* Chalet: phone verification overlay (shown after submission) */}
-      {otpPhone && (
-        <OtpVerification phone={otpPhone} formId={form.id} onDone={finishOtp} />
+      {/* Chalet: restyle the contact-info group on the A/B test form only */}
+      {form.id === '1M58ZbZF' && (
+        <style dangerouslySetInnerHTML={{ __html: AIRBNB_CONTACT_GROUP_CSS }} />
       )}
+
+      {/* Chalet: phone verification overlay (shown after submission) */}
+      {otpPhone && <OtpVerification phone={otpPhone} formId={form.id} onDone={finishOtp} />}
     </>
   )
 }

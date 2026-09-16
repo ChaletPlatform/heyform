@@ -176,7 +176,7 @@ ${SCOPE} .heyform-group-child-statement {
   margin-top: 2px;
 }
 ${SCOPE} .heyform-group-child-statement::before {
-  content: 'Your information is secure \\2014  We only use your information to match you with vetted short-term rental real estate agents. We will never sell your information or share it with third parties for marketing purposes.';
+  content: 'Your information is secure \\2014  We only use your information to match you with vetted short-term rental real estate agents. We will never share your information with third parties for marketing purposes.';
   display: block;
   width: 100%;
   padding: 12px 16px 12px 46px;

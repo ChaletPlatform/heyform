@@ -86,9 +86,9 @@ ${SCOPE} .heyform-group-child-required {
   display: none !important;
 }
 
-/* Icon pseudo-elements */
+/* Icon pseudo-elements — field order: Name (1), Email (2), Phone (3) */
 ${SCOPE} .heyform-group-children > .heyform-group-child:nth-child(1) .heyform-group-child-label::before,
-${SCOPE} .heyform-group-children > .heyform-group-child:nth-child(3) .heyform-group-child-label::before {
+${SCOPE} .heyform-group-children > .heyform-group-child:nth-child(2) .heyform-group-child-label::before {
   content: '';
   display: inline-block;
   width: 17px;
@@ -98,6 +98,9 @@ ${SCOPE} .heyform-group-children > .heyform-group-child:nth-child(3) .heyform-gr
   background-size: contain;
 }
 ${SCOPE} .heyform-group-children > .heyform-group-child:nth-child(1) .heyform-group-child-label::before {
+  background-image: url("${USER_ICON}");
+}
+${SCOPE} .heyform-group-children > .heyform-group-child:nth-child(2) .heyform-group-child-label::before {
   background-image: url("${MAIL_ICON}");
 }
 ${SCOPE} .heyform-group-child.heyform-phone-number .heyform-group-child-label::before {
@@ -109,9 +112,6 @@ ${SCOPE} .heyform-group-child.heyform-phone-number .heyform-group-child-label::b
   background-image: url("${PHONE_ICON}");
   background-repeat: no-repeat;
   background-size: contain;
-}
-${SCOPE} .heyform-group-children > .heyform-group-child:nth-child(3) .heyform-group-child-label::before {
-  background-image: url("${USER_ICON}");
 }
 
 /* ── Inputs ── */

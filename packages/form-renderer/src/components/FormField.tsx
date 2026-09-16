@@ -10,14 +10,14 @@ interface FormFieldProps extends FieldProps {
 
 export const FormField: FC<FormFieldProps> = ({ className, children, ...restProps }) => {
   return (
-    <Field validateFirst={false} {...restProps}>
+    <Field validateFirst={false} validateTrigger="onBlur" {...restProps}>
       {(props, meta) => {
         const childNode = cloneElement(children as ReactElement, props)
 
         return (
           <div className={clsx('heyform-form-field', className)}>
             {childNode}
-            {meta.errors.length > 0 && (
+            {meta.errors.length > 0 && meta.touched && (
               <div className="heyform-validation-wrapper">
                 <div className="heyform-validation-error">{meta.errors[0]}</div>
               </div>

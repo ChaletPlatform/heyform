@@ -79,7 +79,7 @@ const HIGH_BUDGET_CHOICE_IDS = new Set([
   'UIDMNcevrnM4vj7ZX2fWf', // $1,200,000 - $2,000,000
   'eXExocRQixRVL8fuCFEpZ' // $2,000,000 - $5,000,000
 ])
-const AIRBNB_REALTOR_FORM_IDS = new Set(['wWLgPuRJ', 'gZ0RU2wj'])
+const AIRBNB_REALTOR_FORM_IDS = new Set(['wWLgPuRJ', 'gZ0RU2wj', '1M58ZbZF'])
 const BUDGET_FIELD_ID = 'lJHT384s4UcK'
 const FITS_YOU_BEST_FIELD_ID = 'K9TdKPBxSQSj'
 const IM_BUYING_CHOICE_ID = '37UouhX4aFkE'

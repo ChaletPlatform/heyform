@@ -1,5 +1,4 @@
 import {
-  AIRBNB_REALTOR_FORM_IDS,
   FormRenderer,
   getTheme,
   getThemeStyle,
@@ -344,9 +343,8 @@ export const Renderer: FC<RendererProps> = ({ form, query, locale, contactId }) 
         <style dangerouslySetInnerHTML={{ __html: form.themeSettings!.theme!.customCSS! }} />
       )}
 
-      {/* Chalet: restyle the "Get Your Agent Matches" contact-info group on
-          the Airbnb realtor forms to match the approved design spec. */}
-      {AIRBNB_REALTOR_FORM_IDS.has(form.id) && (
+      {/* Chalet: restyle the contact-info group on the A/B test form only */}
+      {form.id === '1M58ZbZF' && (
         <style dangerouslySetInnerHTML={{ __html: AIRBNB_CONTACT_GROUP_CSS }} />
       )}
 

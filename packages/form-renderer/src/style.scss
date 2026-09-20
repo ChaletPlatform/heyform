@@ -1618,7 +1618,6 @@ button.button-icon-only {
   }
 }
 
-.heyform-progress,
 .heyform-countdown,
 .heyform-branding,
 .heyform-pagination button.button {
@@ -1643,30 +1642,24 @@ button.button-icon-only {
   }
 }
 
-.heyform-progress,
 .heyform-countdown {
   @apply mr-2 rounded;
   line-height: 1.5rem;
 }
 
-.heyform-progress {
-  @apply flex items-center;
-
-  span {
-    @apply ml-2 block font-medium;
-  }
+.heyform-progress-bar {
+  @apply fixed left-0 top-0 z-50 w-full;
 }
 
-.heyform-circular-progressbar {
-  @apply h-5 w-5;
+.heyform-progress-track {
+  @apply relative h-1.5 w-full overflow-hidden;
+  background-color: color-mix(in srgb, var(--heyform-button-color) 20%, transparent);
 }
 
-.heyform-circular-circle {
-  stroke: var(--heyform-button-text-opacity-20-color);
-}
-
-.heyform-circular-path {
-  stroke: var(--heyform-button-text-color);
+.heyform-progress-indicator {
+  @apply h-full w-full;
+  background-color: var(--heyform-button-color);
+  transition: transform 0.3s ease;
 }
 
 .heyform-footer-right {

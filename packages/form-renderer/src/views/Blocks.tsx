@@ -33,6 +33,7 @@ import { usePostHogTracking } from '../hooks/usePostHogTracking'
 import { useStore } from '../store'
 import { Footer } from './Footer'
 import { Header } from './Header'
+import { Progress } from './Progress'
 
 const QUESTION_TRANSITION_DURATION = 1000
 type TransitionState = 'active' | 'leaving'
@@ -298,6 +299,7 @@ export const Blocks = () => {
 
   return (
     <>
+      {state.settings?.enableProgress && <Progress />}
       <Header />
       <Main />
       <Footer />

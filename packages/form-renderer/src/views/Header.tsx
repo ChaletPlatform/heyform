@@ -6,7 +6,6 @@ import { helper } from '@heyform-inc/utils'
 
 import { Countdown } from '../components/Countdown'
 import { useStore } from '../store'
-import { Progress } from './Progress'
 
 export const Header: FC = () => {
   const { state, dispatch } = useStore()
@@ -44,7 +43,6 @@ export const Header: FC = () => {
           {state.settings?.enableTimeLimit && state.settings.timeLimit && (
             <Countdown settings={state.settings!} onEnd={handleCountdownEndCallback} />
           )}
-          {state.settings?.enableProgress && <Progress />}
         </div>
       </div>
     </div>

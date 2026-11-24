@@ -52,6 +52,66 @@ const SKIP_FIELDS_WHEN_HIDDEN_SET: Record<string, FieldMatcher[]> = {
   ]
 }
 
+// Pre-select an answer from the URL query, keeping the question visible and
+// editable (chalet-nextjs homepage AI hero, BACKEND-CONTRACT.md 2.6). The value
+// is a choice's exact text, e.g. `budget=$400,000 - $600,000`. A value that
+// matches no choice is ignored, so the question is asked as usual.
+const PRESELECT_FROM_QUERY: Record<string, FieldMatcher[]> = {
+  // Buyer form (gZ0RU2wj)
+  budget: [{ id: 'lJHT384s4UcK' }, { titleIncludes: 'target purchase price' }],
+  timeline: [
+    { id: 'KYnXxtcPjCaN' },
+    { titleIncludes: 'timeline to buy' },
+    // Seller form (yyldxMzl)
+    { id: 'roEizLlxa4Fs' },
+    { titleIncludes: 'timeline to sell' }
+  ],
+  experience: [{ id: 'quoNnlPyYhGy' }, { titleIncludes: 'real estate experience' }],
+  lender: [{ id: '0AsVcefU3z7m' }, { titleIncludes: 'investor-friendly lender' }],
+  // Seller form (yyldxMzl)
+  seller_type: [{ id: 'RZdElR8PssGB' }, { titleIncludes: 'describes you?' }],
+  listing_status: [{ id: 'en9EBprtu80t' }, { titleIncludes: 'currently listed for sale' }],
+  property_value: [{ id: 'f0V6BZunVEFu' }, { titleIncludes: 'estimated value of the property' }]
+}
+
+function normalizeChoiceText(text: unknown): string {
+  return String(text ?? '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase()
+}
+
+// The answer value a choice question stores for the choice whose text is
+// `label`, or undefined when no choice matches.
+type ChoiceAnswer = string | { value: string[] }
+
+function choiceAnswer(field: FormField, label: string): ChoiceAnswer | undefined {
+  const wanted = normalizeChoiceText(label)
+  const choice = field.properties?.choices?.find(c => normalizeChoiceText(c.label) === wanted)
+  if (!choice) return
+  switch (field.kind) {
+    case FieldKindEnum.YES_NO:
+      return choice.id
+    case FieldKindEnum.MULTIPLE_CHOICE:
+    case FieldKindEnum.PICTURE_CHOICE:
+      return { value: [choice.id] }
+  }
+}
+
+function preselectFromQuery(fields: FormField[], query: Record<string, unknown>) {
+  const preselected: Record<string, ChoiceAnswer> = {}
+  for (const [name, matchers] of Object.entries(PRESELECT_FROM_QUERY)) {
+    const label = readHiddenValue(name, query)
+    if (!label) continue
+    for (const field of fields) {
+      if (!matchers.some(m => fieldMatches(field, m))) continue
+      const answer = choiceAnswer(field, label)
+      if (answer !== undefined) preselected[field.id] = answer
+    }
+  }
+  return preselected
+}
+
 function fieldTitleText(title: any): string {
   if (typeof title === 'string') return title
   if (Array.isArray(title)) {
@@ -163,10 +223,14 @@ function initStore(
       .map(f => (f.parent && skipIds.has(f.parent.id) ? { ...f, parent: undefined } : f))
   }
 
+  // Answers the visitor already gave in this form (autosave) win over the URL.
+  const stored = getStorage(form.id, autoSave)
+  const preselected = { ...preselectFromQuery(allFields, query), ...stored }
+
   // Budget ≥ $600k → skip "Pick what fits you best", auto-fill "I'm Buying"
   if (
     AIRBNB_REALTOR_FORM_IDS.has(form.id) &&
-    (isHighBudget(seededValues) || isHighBudget(getStorage(form.id, autoSave)))
+    (isHighBudget(seededValues) || isHighBudget(preselected))
   ) {
     allFields = allFields.filter(f => f.id !== FITS_YOU_BEST_FIELD_ID)
     seededValues[FITS_YOU_BEST_FIELD_ID] = { value: [IM_BUYING_CHOICE_ID] }
@@ -176,7 +240,7 @@ function initStore(
     .filter(l => l.payloads.some(p => p.action.kind === ActionEnum.NAVIGATE))
     .map(l => l.fieldId)
 
-  const values = { ...getStorage(form.id, autoSave), ...seededValues }
+  const values = { ...preselected, ...seededValues }
   const { fields, variables } = applyLogicToFields(
     [...allFields, ...thankYouFields].filter(Boolean) as FormField[],
     form.logics,

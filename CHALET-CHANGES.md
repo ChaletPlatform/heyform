@@ -159,6 +159,32 @@ All new files except `docker-compose.test.yml` (existed upstream but was heavily
 
 ---
 
+## 6. Answers From the URL (skip market, pre-select choices)
+
+**Purpose:** The website already knows some answers before the form opens. The
+homepage AI hero (chalet-nextjs `hero-ai/BACKEND-CONTRACT.md` 2.6) passes them
+in the form URL so the visitor doesn't answer twice.
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `packages/form-renderer/src/Renderer.tsx` (`initStore`) | `SKIP_FIELDS_WHEN_HIDDEN_SET`: `market_of_interest` hides the market question and fills its answer. `PRESELECT_FROM_QUERY`: `budget`, `timeline`, `experience`, `lender` (buyer form `gZ0RU2wj`) and `seller_type`, `listing_status`, `timeline`, `property_value` (seller form `yyldxMzl`) select the choice whose text equals the value. The question stays visible and the visitor can change it. A budget of $600k or more also skips "Pick what fits you best" (fills "I'm Buying"). |
+
+### How It Works
+
+1. The URL carries a choice's exact text, e.g. `?budget=$400,000 - $600,000&timeline=I am ready to buy now`. These keys are not hidden fields.
+2. Each key names its question by field id, with a title fallback in case a form rebuild issues new ids.
+3. The text is matched to a choice (ignoring case and extra spaces) and stored as that choice's answer. Text that matches no choice is ignored, and the question is asked as usual.
+4. An answer the visitor already gave in this form (autosave) wins over the URL.
+
+### Merge Notes
+
+- Self-contained in `Renderer.tsx` above `initStore`, plus three lines in `initStore`. Re-apply after upstream changes to `initStore`.
+- Renaming a choice in the HeyForm builder breaks its pre-select until the website sends the new text.
+
+---
+
 ## Files NOT Changed (and why)
 
 These files are commonly assumed to need changes but are deliberately untouched:

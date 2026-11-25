@@ -52,10 +52,10 @@ const SKIP_FIELDS_WHEN_HIDDEN_SET: Record<string, FieldMatcher[]> = {
   ]
 }
 
-// Pre-select an answer from the URL query, keeping the question visible and
-// editable (chalet-nextjs homepage AI hero, BACKEND-CONTRACT.md 2.6). The value
-// is a choice's exact text, e.g. `budget=$400,000 - $600,000`. A value that
-// matches no choice is ignored, so the question is asked as usual.
+// Answer a question from the URL query and skip it (chalet-nextjs homepage AI
+// hero, BACKEND-CONTRACT.md 2.6): the visitor already answered it in the chat.
+// The value is a choice's exact text, e.g. `budget=$400,000 - $600,000`. A value
+// that matches no choice is ignored, so the question is asked as usual.
 const PRESELECT_FROM_QUERY: Record<string, FieldMatcher[]> = {
   // Buyer form (gZ0RU2wj)
   budget: [{ id: 'lJHT384s4UcK' }, { titleIncludes: 'target purchase price' }],
@@ -224,8 +224,18 @@ function initStore(
   }
 
   // Answers the visitor already gave in this form (autosave) win over the URL.
+  const fromUrl = preselectFromQuery(allFields, query)
   const stored = getStorage(form.id, autoSave)
-  const preselected = { ...preselectFromQuery(allFields, query), ...stored }
+  const preselected = { ...fromUrl, ...stored }
+
+  // A question answered from the URL is skipped, like the market question above:
+  // the visitor already answered it in the chat, and its answer is still submitted.
+  const answeredIds = new Set(Object.keys(fromUrl))
+  if (answeredIds.size > 0) {
+    allFields = allFields
+      .filter(f => !answeredIds.has(f.id))
+      .map(f => (f.parent && answeredIds.has(f.parent.id) ? { ...f, parent: undefined } : f))
+  }
 
   // Budget ≥ $600k → skip "Pick what fits you best", auto-fill "I'm Buying"
   if (
